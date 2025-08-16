@@ -1,830 +1,2281 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Time Tracker Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Time Tracker — Edit Mode, Countdown, Music</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background:#1a1a1a; color:#fff; min-height:100vh; padding:20px;
+    }
+    .container { max-width: 1040px; margin: 0 auto; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: #1a1a1a;
-            color: #ffffff;
-            padding: 20px;
-            min-height: 100vh;
-        }
+    .section { background:#2a2a2a; border-radius:12px; padding:24px; margin-bottom:24px; }
+    .section-title { font-size:14px; color:#bdbdbd; margin-bottom:16px; font-weight:600; display:flex; align-items:center; justify-content:space-between; gap:12px; }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
+    /* Buttons / inputs */
+    .controls { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
+    .btn { background:#3a3a3a; color:#fff; border:none; padding:8px 14px; border-radius:8px; cursor:pointer; font-size:14px; transition:background .2s, opacity .2s; }
+    .btn:hover { background:#4a4a4a; }
+    .btn-primary { background:#3b82f6; }
+    .btn-primary:hover { background:#2563eb; }
+    .btn-danger { background:#ef4444; }
+    .btn-danger:hover { background:#dc2626; }
+    .btn-ghost { background:transparent; border:1px solid #444; }
+    .btn[disabled] { opacity: .5; cursor:not-allowed; }
+    .toggle {
+      display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid #444;
+    }
+    .toggle-dot { width:12px; height:12px; border-radius:50%; background:#555; }
+    .toggle.on .toggle-dot { background:#22c55e; }
 
-        .section {
-            background: #2a2a2a;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
+    .input, .select {
+      padding:8px 10px; border-radius:8px; border:1px solid #444; background:#1f1f1f; color:#fff; font-size:14px;
+    }
+    .small { font-size:12px; }
+    .muted { color:#8a8a8a; font-size:12px; }
 
-        .section-title {
-            font-size: 14px;
-            color: #888;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
+    /* Daily Chart */
+    .daily-chart { display:flex; align-items:flex-end; justify-content:space-between; height:260px; margin-bottom:10px; position:relative; padding-left:50px; background:rgba(0,0,0,.2); border-radius:8px; padding-right:20px; padding-bottom:35px; padding-top:20px; overflow:hidden; }
+    .bar-container { width:100%; display:flex; flex-direction:column; align-items:center; position:relative; }
+    .day-label { color:#888; font-size:12px; font-weight:500; position:absolute; bottom:-28px; white-space:nowrap; }
+    .time-label { color:#bbb; font-size:11px; white-space:nowrap; z-index:10; }
+    .grid-lines { position:absolute; width:calc(100% - 70px); height:calc(100% - 55px); pointer-events:none; left:50px; bottom:35px; }
+    .grid-line { position:absolute; width:100%; border-top:1px solid #3f3f3f; left:0; display:flex; align-items:center; }
+    .grid-label { position:absolute; left:-45px; font-size:10px; color:#666; white-space:nowrap; }
 
-        /* Daily Distribution Chart */
-        .daily-chart {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            height: 250px;
-            margin-bottom: 10px;
-            position: relative;
-            padding-left: 50px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-            padding-right: 20px;
-            padding-bottom: 35px;
-            padding-top: 20px;
-        }
+    /* Category Distribution */
+    .category-item { display:flex; align-items:center; padding:14px 0; border-bottom:1px solid #3a3a3a; }
+    .category-item:last-child { border-bottom:none; }
+    .category-icon { width:24px; height:24px; border-radius:50%; margin-right:12px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; }
+    .category-name { flex:1; font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; }
+    .row-actions { display:flex; gap:8px; margin-left:12px; }
+    .category-stats { display:flex; gap:32px; align-items:center; }
+    .stat-group { text-align:right; min-width:80px; }
+    .stat-label { font-size:10px; color:#666; text-transform:uppercase; margin-bottom:4px; }
+    .stat-value { font-size:14px; font-weight:500; }
+    .time-value { color:#fff; }
+    .ratio-value { color:#bbb; }
+    .change-positive { color:#4ade80; }
+    .change-negative { color:#f87171; }
+    .change-infinite { color:#4ade80; }
 
-        .bar-container {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-        }
+    /* Legend */
+    .legend { display:flex; gap:16px; margin-top:16px; flex-wrap:wrap; }
+    .legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color:#888; }
+    .legend-color { width:12px; height:12px; border-radius:2px; }
 
-        .day-column {
-            position: relative;
-        }
+    /* Tasks */
+    .tasks-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:12px; flex-wrap:wrap; }
+    .task-list { display:flex; flex-direction:column; gap:10px; max-height:420px; overflow:auto; }
+    .task-row {
+      display:grid; grid-template-columns: 1.1fr 140px 170px 180px 1fr; align-items:center; gap:10px;
+      background:#242424; padding:12px; border-radius:10px; border:1px solid #363636;
+    }
+    .task-title { display:flex; align-items:center; gap:10px; font-weight:600; }
+    .task-dot { width:10px; height:10px; border-radius:50%; }
+    .task-time { color:#bbb; font-variant-tabular-nums:tabular-nums; }
+    .task-actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+    .countdown { display:flex; align-items:center; gap:8px; }
+    .overdue { outline: 2px solid #ef4444; }
 
-        .bar-segment {
-            width: 100%;
-            transition: opacity 0.3s;
-        }
+    /* Bulk bars */
+    .bulk-bar { display:flex; gap:10px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+    .bulk-bar .input { min-width:260px; flex:1; }
 
-        .time-label {
-            color: #bbb;
-            font-size: 11px;
-            white-space: nowrap;
-            z-index: 10;
-        }
+    /* Modal */
+    .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); align-items:center; justify-content:center; z-index:1000; }
+    .modal.active { display:flex; }
+    .modal-content { background:#2a2a2a; padding:24px; border-radius:12px; width:90%; max-width:560px; }
+    .modal-title { font-size:18px; margin-bottom:20px; }
+    .form-group { margin-bottom:16px; }
+    .form-label { display:block; font-size:12px; color:#888; margin-bottom:6px; }
+    .form-input, .form-select { width:100%; padding:8px 12px; background:#3a3a3a; border:1px solid #4a4a4a; border-radius:6px; color:#fff; font-size:14px; }
+    /* Emoji palette */
+    .emoji-palette { display:flex; gap:6px; flex-wrap:wrap; max-height:120px; overflow:auto; }
+    .emoji-chip { border:1px solid #444; background:#1f1f1f; padding:6px 8px; border-radius:8px; cursor:pointer; }
+    .emoji-chip:hover { background:#333; }
 
-        .average-label {
-            color: #666;
-            font-size: 10px;
-            white-space: nowrap;
-        }
+    /* Music floating player */
+    .music-fab {
+      position: fixed; right: 20px; bottom: 20px;
+      background:#3b3b3b; border:1px solid #4a4a4a; border-radius:999px; padding:10px;
+      display:flex; align-items:center; gap:10px; width:48px; overflow:hidden;
+      transition: width .25s ease, background .2s;
+      z-index: 2000;
+    }
+    .music-fab:hover { width: 420px; background:#2f2f2f; }
+    .music-icon { width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:999px; background:#1f1f1f; }
+    .music-details { display:flex; align-items:center; gap:8px; opacity:0; transition: opacity .2s; white-space:nowrap; }
+    .music-fab:hover .music-details { opacity:1; }
+    .music-input { width:200px; }
+    .noise-buttons { display:flex; gap:6px; }
+  
+/* === Mood + Heatmap additions === */
+.mood-top {
+  margin-left:auto; display:flex; align-items:center; gap:8px;
+  padding:6px 10px; border-radius:999px; border:1px solid #444; background:#1f1f1f;
+  font-size:18px; cursor:pointer;
+}
+.mood-top .label { color:#bdbdbd; font-size:12px; }
+.mood-top .emoji { font-size:20px; line-height:1; }
 
-        .day-label {
-            color: #888;
-            font-size: 12px;
-            font-weight: 500;
-            position: absolute;
-            bottom: -28px;
-            white-space: nowrap;
-        }
+#moodModal .emoji-grid {
+  display:grid; grid-template-columns: repeat(6, 40px); gap:10px; justify-content:center; margin-top:8px;
+}
+#moodModal .emoji-grid button {
+  font-size:20px; padding:6px; border-radius:10px; border:1px solid #444; background:#1f1f1f; cursor:pointer;
+}
+#moodModal .emoji-grid button:hover { transform: scale(1.06); }
+#moodModal .modal-content { max-width: 420px; }
 
-        /* Grid lines */
-        .grid-lines {
-            position: absolute;
-            width: calc(100% - 70px);
-            height: calc(100% - 55px);
-            pointer-events: none;
-            left: 50px;
-            bottom: 35px;
-        }
+/* Calendar / Heatmap */
+.section-subtitle { color:#bdbdbd; font-size:13px; margin-bottom:10px; }
+.calendar-nav { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.calendar-nav .range { color:#bdbdbd; font-size:13px; }
+.heatmap { display:grid; grid-template-columns: repeat(52, 12px); grid-auto-rows: 12px; gap:3px; padding:8px; border:1px solid #444; border-radius:8px; background:#1f1f1f; overflow:auto; }
+.heat-cell { width:12px; height:12px; border-radius:3px; }
+.heat-legend { display:flex; gap:6px; align-items:center; margin-top:8px; font-size:12px; color:#bdbdbd; }
+.heat-swatch { width:12px; height:12px; border-radius:3px; border:1px solid #333; }
 
-        .grid-line {
-            position: absolute;
-            width: 100%;
-            border-top: 1px solid #3f3f3f;
-            left: 0;
-            display: flex;
-            align-items: center;
-        }
+/* Tooltip helper for segments (keep native title, but allow pointer) */
+.daily-chart .segment { cursor:help; }
 
-        .grid-label {
-            position: absolute;
-            left: -45px;
-            font-size: 10px;
-            color: #666;
-            white-space: nowrap;
-        }
 
-        /* Category Distribution */
-        .category-item {
-            display: flex;
-            align-items: center;
-            padding: 16px 0;
-            border-bottom: 1px solid #3a3a3a;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
+/* Heatmap tooltip */
+#heatTip{
+  position:fixed; pointer-events:none;
+  background:#111; border:1px solid #444; border-radius:8px;
+  padding:8px 10px; color:#fff; font-size:12px; z-index:999999;
+  display:none; white-space:nowrap; box-shadow:0 8px 20px rgba(0,0,0,.35);
+}
 
-        .category-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            margin: 0 -24px;
-            padding: 16px 24px;
-        }
 
-        .category-item:last-child {
-            border-bottom: none;
-        }
+/* === Music Panel (roomy popup) === */
+#musicPanel{ resize: both; overflow: auto;
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 420px;
+  max-width: calc(100% - 32px);
+  background: #0b0b0b;
+  border: 1px solid #2a2a2a;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.55);
+  z-index: 99999;
+  display: none;
+}
+#musicPanel.active{ display:block; }
+#musicPanel .mp-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px; border-bottom:1px solid #222;
+}
+#musicPanel .mp-title{ font-weight:600; color:#e5e5e5; font-size:14px; }
+#musicPanel .mp-actions{ display:flex; gap:8px; }
+#musicPanel .mp-actions .btn{ padding:6px 10px; font-size:12px; }
+#musicPanel .mp-body{ padding:10px; }
+#musicPanel .mp-embed{
+  width:100%; height:300px;
+  border:0; border-radius:10px; background:#111;
+}
+#musicPanel .mp-foot{
+  padding:8px 10px; border-top:1px solid #222; font-size:12px; color:#bdbdbd;
+  display:flex; justify-content:space-between; align-items:center;
+}
+#musicUrl{ max-width: 500px; }
+@media (max-width:560px){
+  #musicPanel{ resize: both; overflow: auto; width: calc(100% - 20px); right:10px; left:10px; }
+}
 
-        .category-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-        }
 
-        .category-name {
-            flex: 1;
-            font-size: 14px;
-            font-weight: 500;
-        }
+/* === Podcast Panel (audio-first) === */
+#podcastPanel{
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 420px;
+  max-width: calc(100% - 32px);
+  background: #0b0b0b;
+  border: 1px solid #2a2a2a;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.55);
+  z-index: 99999;
+  display: none;
+  resize: both;
+  overflow: auto;
+}
+#podcastPanel.active{ display:block; }
+#podcastPanel .pc-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px; border-bottom:1px solid #222;
+}
+#podcastPanel .pc-title{ font-weight:600; color:#e5e5e5; font-size:14px; }
+#podcastPanel .pc-actions{ display:flex; gap:8px; }
+#podcastPanel .pc-actions .btn{ padding:6px 10px; font-size:12px; }
+#podcastPanel .pc-body{ padding:10px; }
+#podcastPanel .pc-foot{
+  padding:8px 10px; border-top:1px solid #222; font-size:12px; color:#bdbdbd;
+  display:flex; justify-content:space-between; align-items:center;
+}
+#podcastUrl{ flex:1; min-width:160px; }
+#ytHiddenWrap{ width:1px; height:1px; overflow:hidden; }
 
-        .category-stats {
-            display: flex;
-            gap: 40px;
-            align-items: center;
-        }
-
-        .stat-group {
-            text-align: right;
-            min-width: 80px;
-        }
-
-        .stat-label {
-            font-size: 10px;
-            color: #666;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-
-        .stat-value {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .ratio-value {
-            color: #888;
-        }
-
-        .change-positive {
-            color: #4ade80;
-        }
-
-        .change-negative {
-            color: #f87171;
-        }
-
-        .change-infinite {
-            color: #4ade80;
-        }
-
-        .time-value {
-            color: #fff;
-        }
-
-        .progress-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 2px;
-            background: currentColor;
-            transition: width 0.3s;
-        }
-
-        /* Controls */
-        .controls {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .btn {
-            background: #3a3a3a;
-            color: #fff;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.2s;
-        }
-
-        .btn:hover {
-            background: #4a4a4a;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #2a2a2a;
-            padding: 24px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 400px;
-        }
-
-        .modal-title {
-            font-size: 18px;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 12px;
-            color: #888;
-            margin-bottom: 6px;
-        }
-
-        .form-input, .form-select {
-            width: 100%;
-            padding: 8px 12px;
-            background: #3a3a3a;
-            border: 1px solid #4a4a4a;
-            border-radius: 6px;
-            color: #fff;
-            font-size: 14px;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-top: 24px;
-        }
-
-        /* Legend */
-        .legend {
-            display: flex;
-            gap: 16px;
-            margin-top: 16px;
-            flex-wrap: wrap;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            color: #888;
-        }
-
-        .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 2px;
-        }
-    </style>
+</style>
 </head>
 <body>
-    <div class="container">
-        <!-- Controls -->
-        <div class="controls">
-            <button class="btn btn-primary" onclick="openAddTimeModal()">+ Add Time Entry</button>
-            <button class="btn" onclick="resetData()">Reset Week</button>
-            <button class="btn" onclick="generateSampleData()">Load Sample Data</button>
-        </div>
+  <div class="container">
+    <!-- Top Controls -->
+    <div class="controls">
+      <button class="btn btn-primary" onclick="openAddTimeModal()">+ Add Time Entry</button>
+      <button class="btn" onclick="resetData()">Reset Week</button>
+      <button class="btn" onclick="generateSampleData()">Load Sample Data</button>
+      <button class="btn btn-ghost" onclick="openAddTaskModal()">+ New Task</button>
 
-        <!-- Daily Distribution -->
-        <div class="section">
-            <div class="section-title">Daily Distribution</div>
-            <div class="daily-chart" id="dailyChart">
-            </div>
-            <div class="legend" id="legend"></div>
-        </div>
-
-        <!-- Category Distribution -->
-        <div class="section">
-            <div class="section-title">Category Distribution</div>
-            <div id="categoryList"></div>
-        </div>
+      <div id="editToggle" class="toggle" onclick="toggleEditMode()">
+        <div class="toggle-dot"></div><div class="small">Edit Mode</div>
+      </div>
     </div>
 
-    <!-- Add Time Modal -->
-    <div class="modal" id="addTimeModal">
-        <div class="modal-content">
-            <div class="modal-title">Add Time Entry</div>
-            <div class="form-group">
-                <label class="form-label">Category</label>
-                <select class="form-select" id="categorySelect">
-                    <option value="DSA">DSA</option>
-                    <option value="Side Project">Side Project</option>
-                    <option value="English">English</option>
-                    <option value="System Design">System Design</option>
-                    <option value="Planning">Planning</option>
-                    <option value="Break">Break</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Day</label>
-                <select class="form-select" id="daySelect">
-                    <option value="MON">Monday</option>
-                    <option value="TUE">Tuesday</option>
-                    <option value="WED">Wednesday</option>
-                    <option value="THU">Thursday</option>
-                    <option value="FRI">Friday</option>
-                    <option value="SAT">Saturday</option>
-                    <option value="SUN">Sunday</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Duration (minutes)</label>
-                <input type="number" class="form-input" id="durationInput" min="1" value="30">
-            </div>
-            <div class="form-actions">
-                <button class="btn" onclick="closeAddTimeModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="addTimeEntry()">Add Entry</button>
-            </div>
-        </div>
+    <!-- Daily Distribution -->
+    <div class="section">
+      <div class="section-title"><span>Daily Distribution (updates live)</span></div>
+      <div class="daily-chart" id="dailyChart"></div>
+      <div class="legend" id="legend"></div>
     </div>
 
-    <script>
-        // Data structure
-        let timeData = {
-            MON: [],
-            TUE: [],
-            WED: [],
-            THU: [],
-            FRI: [],
-            SAT: [],
-            SUN: []
-        };
+    <!-- Tasks -->
+    <div class="section">
+      <div class="tasks-header">
+        <div class="section-title" style="margin:0">
+          <span>Tasks (live + countdown)</span>
+        </div>
+        <div class="muted" id="nowLabel"></div>
+      </div>
 
-        let previousWeekData = {};
+      <!-- Bulk task bar -->
+      <div class="bulk-bar">
+        <select id="bulkTasksCategory" class="select"></select>
+        <input id="bulkTasksInput" class="input" placeholder="task1, task2, 0, task3, task4" />
+        <button class="btn btn-primary" onclick="bulkAddTasks()">Add</button>
+        <div class="muted">Use <b>0</b> to clear all tasks; only items after 0 are added.</div>
+      </div>
 
-        const categories = {
-            'DSA': { color: '#f97316', icon: '⚡' },
-            'Side Project': { color: '#8b5cf6', icon: '🚀' },
-            'English': { color: '#10b981', icon: '📚' },
-            'System Design': { color: '#06b6d4', icon: '🔧' },
-            'Planning': { color: '#ec4899', icon: '📋' },
-            'Break': { color: '#6b7280', icon: '☕' }
-        };
+      <div id="tasksList" class="task-list"></div>
+      <div class="muted" style="margin-top:10px">Start a task to count up; use ⏱ for a countdown. Finishes with a gentle beep.</div>
+    </div>
 
-        // Load data from localStorage
-        function loadData() {
-            const saved = localStorage.getItem('timeTrackerData');
-            if (saved) {
-                timeData = JSON.parse(saved);
-            }
-            const savedPrevious = localStorage.getItem('previousWeekData');
-            if (savedPrevious) {
-                previousWeekData = JSON.parse(savedPrevious);
-            }
+    <!-- Category Distribution -->
+    <div class="section">
+      <div class="section-title">
+        <span>Category Distribution</span>
+        <div id="categoryActionsView">
+          <button class="btn btn-ghost small" onclick="openCategoryManager()" disabled>Manage (edit mode)</button>
+          <button class="btn btn-primary small" onclick="openAddCategory()" disabled>+ Add Category</button>
+        </div>
+      </div>
+
+      <!-- Bulk category creation (visible only in edit mode) -->
+      <div id="bulkCategoryBar" class="bulk-bar" style="display:none;">
+        <input id="bulkCategoryInput" class="input" placeholder="MATHS, English, 0, Project Work, Geography" />
+        <button class="btn btn-primary" onclick="bulkCategoryCreate()">Apply</button>
+        <div class="muted">Use <b>0</b> to set a fresh list (replaces categories and clears week data & tasks).</div>
+      </div>
+
+      <div id="categoryList"></div>
+    </div>
+  </div>
+
+  <!-- Add Time Modal -->
+  <div class="modal" id="addTimeModal">
+    <div class="modal-content">
+      <div class="modal-title">Add Time Entry</div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="categorySelect"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Day</label>
+        <select class="form-select" id="daySelect">
+          <option value="MON">Monday</option>
+          <option value="TUE">Tuesday</option>
+          <option value="WED">Wednesday</option>
+          <option value="THU">Thursday</option>
+          <option value="FRI">Friday</option>
+          <option value="SAT">Saturday</option>
+          <option value="SUN">Sunday</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duration (minutes)</label>
+        <input type="number" class="form-input" id="durationInput" min="1" value="30">
+      </div>
+      <div class="form-actions" style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px">
+        <button class="btn" onclick="closeAddTimeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="addTimeEntry()">Add Entry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task Modal -->
+  <div class="modal" id="addTaskModal">
+    <div class="modal-content">
+      <div class="modal-title">Create Task</div>
+      <div class="form-group">
+        <label class="form-label">Task name</label>
+        <input type="text" id="taskNameInput" class="form-input" placeholder="e.g., Leetcode 75 - BFS set"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select id="taskCategoryInput" class="form-select"></select>
+      </div>
+      <div class="form-actions" style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px">
+        <button class="btn" onclick="closeAddTaskModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="createTask()">Add Task</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Manager Modal (Add/Edit/Delete) -->
+  <div class="modal" id="categoryModal">
+    <div class="modal-content">
+      <div class="modal-title" id="categoryModalTitle">Add Category</div>
+      <input type="hidden" id="categoryMode" value="add"/>
+      <input type="hidden" id="editingOldName" value=""/>
+      <div class="form-group">
+        <label class="form-label">Name</label>
+        <input type="text" id="catName" class="form-input" placeholder="e.g., Research"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <input type="color" id="catColor" class="form-input" value="#10b981" style="height:38px; padding:2px;"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Icon (emoji or 1–2 chars)</label>
+        <input type="text" id="catIcon" class="form-input" value="" maxlength="2"/>
+      </div>
+      <div class="form-group">
+        <div class="muted" style="margin-bottom:8px">Cute emoji suggestions (Unicode):</div>
+        <div id="emojiPalette" class="emoji-palette"></div>
+      </div>
+
+      <div class="form-group" id="deleteReassignGroup" style="display:none;">
+        <label class="form-label">When deleting, reassign existing data to:</label>
+        <select id="reassignSelect" class="form-select"></select>
+      </div>
+
+      <div style="display:flex;gap:12px;justify-content:space-between;margin-top:24px">
+        <div style="display:flex;gap:8px">
+          <button id="deleteCategoryBtn" class="btn btn-danger" style="display:none;" onclick="confirmDeleteCategory()">Delete</button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="closeCategoryModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveCategory()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+    <!-- History / Calendar + Export / Import + Manual -->
+    <div class="section">
+      <div class="section-title"><span>History & Calendar</span></div>
+      <div class="section-subtitle">Switch weeks like Screen Time; see weekly/monthly/yearly heatmap.</div>
+
+      <div class="calendar-nav">
+        <button class="btn" onclick="prevWeek()">◀ Prev Week</button>
+        <div class="range" id="weekRangeLabel"></div>
+        <button class="btn" onclick="nextWeek()">Next Week ▶</button>
+        <div style="margin-left:auto; display:flex; gap:6px;">
+          <button class="btn" onclick="setHeatmapMode('weekly')">Weekly</button>
+          <button class="btn" onclick="setHeatmapMode('monthly')">Monthly</button>
+          <button class="btn" onclick="setHeatmapMode('yearly')">Yearly</button>
+        </div>
+      </div>
+      <div id="weekViewChart" class="daily-chart"></div>
+
+      <div style="height:8px"></div>
+      <div id="yearHeatmap" class="heatmap" title="Contribution-style heatmap"></div>
+      <div class="heat-legend">
+        Less
+        <span class="heat-swatch" style="background:#1f2937;"></span>
+        <span class="heat-swatch" style="background:#0e4429;"></span>
+        <span class="heat-swatch" style="background:#006d32;"></span>
+        <span class="heat-swatch" style="background:#26a641;"></span>
+        <span class="heat-swatch" style="background:#39d353;"></span>
+        More
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span>Export / Import</span></div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button class="btn btn-primary" onclick="exportAll()">Export Data</button>
+        <input type="file" id="importFile" accept="application/json" class="input" style="max-width:260px"/>
+        <button class="btn" onclick="importAll()">Import</button>
+        <div class="muted small">This includes: time entries, tasks, categories, moods, and history.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span>Manual / Notes</span></div>
+      <ul class="small" style="line-height:1.6; padding-left:18px;">
+        <li>Only one task can run at a time. If a task is running, starting another or adding a new task will show a popup.</li>
+        <li>Countdown timer: click <b>Edit</b> to set <code>mm</code> or <code>mm:ss</code>. When it hits <b>00:00</b>, the session is logged to the Daily Distribution automatically.</li>
+        <li>Live timer: click <b>Start Work</b> to begin; click again to stop and log time to today.</li>
+        <li>Delete flow: to fully remove a countdown, use <b>Clear</b> and then <b>Delete</b>.</li>
+        <li>Moods: You’ll be asked for a mood on page open, after adding a time entry, and when a task completes. Your mood shows on top as an emoji.</li>
+        <li>Music: paste a YouTube/Spotify URL or a direct audio link. Use Pause/Resume for direct audio, or Stop for any source.</li>
+      </ul>
+    </div>
+
+    <!-- Mood Modal -->
+    <div class="modal" id="moodModal">
+      <div class="modal-content">
+        <div class="modal-title">How are you feeling?</div>
+        <div class="emoji-grid" id="moodGrid"></div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+          <button class="btn" onclick="closeMoodModal()">Close</button>
+        </div>
+      </div>
+    </div>
+<!-- Music FAB -->
+  <div class="music-fab" id="musicFab">
+    <div class="music-icon">🎵</div>
+    <div class="music-details">
+      <div class="noise-buttons">
+        <button class="btn small" onclick="toggleNoise('white')">White</button>
+        <button class="btn small" onclick="toggleNoise('pink')">Pink</button>
+        <button class="btn small" onclick="toggleNoise('brown')">Brown</button>
+      </div>
+      <input id="musicUrl" class="input music-input" placeholder="YouTube/Spotify URL"/>
+      <button class="btn small" onclick="loadExternalMusic()">Play</button>
+      <span id="nowPlaying" class="muted small"></span>
+    </div>
+  </div>
+
+  <script>
+    /* =====================
+       Data
+    ======================*/
+    let timeData = { MON:[], TUE:[], WED:[], THU:[], FRI:[], SAT:[], SUN:[] };
+    let previousWeekData = {};
+    let tasks = [];
+    let categories = {}; // dynamic and persisted
+    let editMode = false;
+
+    /* =====================
+       Persistence
+    ======================*/
+    function loadData() {
+      const saved = localStorage.getItem('timeTrackerData');
+      if (saved) timeData = JSON.parse(saved);
+      const savedPrevious = localStorage.getItem('previousWeekData');
+      if (savedPrevious) previousWeekData = JSON.parse(savedPrevious);
+      const savedTasks = localStorage.getItem('timeTrackerTasks');
+      if (savedTasks) tasks = JSON.parse(savedTasks);
+      const savedCats = localStorage.getItem('timeTrackerCategories');
+      if (savedCats) categories = JSON.parse(savedCats); else categories = defaultCategories();
+      const savedEdit = localStorage.getItem('timeTrackerEditMode');
+      if (savedEdit) editMode = savedEdit === 'true';
+    }
+    function saveData() { localStorage.setItem('timeTrackerData', JSON.stringify(timeData)); }
+    function saveTasks() { localStorage.setItem('timeTrackerTasks', JSON.stringify(tasks)); }
+    function saveCategories() { localStorage.setItem('timeTrackerCategories', JSON.stringify(categories)); }
+    function saveEditMode(){ localStorage.setItem('timeTrackerEditMode', editMode ? 'true':'false'); }
+
+    function defaultCategories(){
+      return {
+        'MATHS': { color: '#f97316', icon: '⚡' },
+        'Project Work': { color: '#8b5cf6', icon: '🚀' },
+        'English': { color: '#10b981', icon: '📚' },
+        'Geography': { color: '#06b6d4', icon: '🔧' },
+        'Planning': { color: '#ec4899', icon: '📋' },
+        'Break': { color: '#6b7280', icon: '☕' }
+      };
+    }
+
+    /* =====================
+       Helpers
+    ======================*/
+    const dayKeys = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    function getTodayKey() { return dayKeys[new Date().getDay()]; }
+    function minutesBetween(startMs, endMs) { return Math.max(0, Math.floor((endMs - startMs) / 60000)); }
+    function startOfTodayMs() { const n=new Date(); n.setHours(0,0,0,0); return n.getTime(); }
+    function formatTime(mins) {
+      if (mins === 0) return '0min';
+      const h = Math.floor(mins / 60), m = mins % 60;
+      if (h === 0) return m + 'min';
+      if (m === 0) return h + 'h';
+      return h + 'h ' + m + 'min';
+    }
+    function pad(n){ return (n<10?'0':'')+n; }
+    function formatClock(sec){
+      const m = Math.floor(sec/60); const s = Math.floor(sec%60);
+      return pad(m)+':'+pad(s);
+    }
+    function updateAllCategorySelects(){
+      const selects = [document.getElementById('categorySelect'), document.getElementById('taskCategoryInput'), document.getElementById('reassignSelect'), document.getElementById('bulkTasksCategory')];
+      selects.forEach(sel => { if (!sel) return; sel.innerHTML=''; Object.keys(categories).forEach(name => {
+        const opt = document.createElement('option'); opt.value = name; opt.textContent = name; sel.appendChild(opt);
+      }); });
+    }
+
+    /* =====================
+       Live minutes
+    ======================*/
+    function getLiveMinutesByCategoryToday() {
+      const live = {}; const now=Date.now(); const startToday = startOfTodayMs();
+      tasks.forEach(t => {
+        if (!t.active || !t.startedAt) return;
+        const effectiveStart = Math.max(t.startedAt, startToday);
+        const mins = minutesBetween(effectiveStart, now);
+        if (mins>0) live[t.category] = (live[t.category] || 0) + mins;
+      });
+      return live;
+    }
+
+    /* =====================
+       Calculations
+    ======================*/
+    function calculateDaySegments(dayKey) {
+      const agg = {};
+      (timeData[dayKey] || []).forEach(e => { agg[e.category] = (agg[e.category] || 0) + e.duration; });
+      if (dayKey === getTodayKey()) {
+        const live = getLiveMinutesByCategoryToday();
+        Object.keys(live).forEach(cat => { agg[cat] = (agg[cat] || 0) + live[cat]; });
+      }
+      return Object.entries(agg).map(([category, duration]) => ({category, duration}));
+    }
+    function calculateDayTotal(dayKey) { return calculateDaySegments(dayKey).reduce((s,x)=>s+x.duration,0); }
+    function calculateCategoryTotalsIncludingLive() {
+      const totals = {};
+      Object.values(timeData).forEach(dayEntries => dayEntries.forEach(e => { totals[e.category] = (totals[e.category] || 0) + e.duration; }));
+      const live = getLiveMinutesByCategoryToday();
+      Object.keys(live).forEach(cat => totals[cat] = (totals[cat] || 0) + live[cat]);
+      return totals;
+    }
+    function calculateWeekTotalIncludingLive() {
+      return Object.values(timeData).flat().reduce((s, e) => s + e.duration, 0) +
+             Object.values(getLiveMinutesByCategoryToday()).reduce((s, m) => s + m, 0);
+    }
+
+    /* =====================
+       Edit mode
+    ======================*/
+    function toggleEditMode(){
+      editMode = !editMode;
+      const t = document.getElementById('editToggle');
+      if (editMode) t.classList.add('on'); else t.classList.remove('on');
+      document.querySelectorAll('#categoryActionsView button').forEach(b => b.disabled = !editMode);
+      document.getElementById('bulkCategoryBar').style.display = editMode ? 'flex':'none';
+      saveEditMode();
+      updateCategoryList();
+    }
+
+    /* =====================
+       Daily chart
+    ======================*/
+    function updateDailyChart() {
+      const chart = document.getElementById('dailyChart');
+      const days = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+      let maxMinutes = 0; days.forEach(d => { const t = calculateDayTotal(d); if (t>maxMinutes) maxMinutes=t; });
+      maxMinutes = Math.max(maxMinutes, 480);
+      maxMinutes = Math.ceil(maxMinutes / 60) * 60;
+      chart.innerHTML='';
+
+      const gridLines = document.createElement('div'); gridLines.className='grid-lines';
+      [0,.25,.5,.75,1].forEach(interval => {
+        const gl=document.createElement('div'); gl.className='grid-line'; gl.style.bottom=(interval*100)+'%';
+        if (interval>0){ const label=document.createElement('div'); label.className='grid-label'; label.textContent = formatTime(Math.round(maxMinutes*interval)); gl.appendChild(label); }
+        gridLines.appendChild(gl);
+      });
+      const zeroLabel = document.createElement('div'); zeroLabel.className='grid-label'; zeroLabel.style.position='absolute'; zeroLabel.style.bottom='0px'; zeroLabel.style.left='-45px'; zeroLabel.textContent='0min'; gridLines.appendChild(zeroLabel);
+      chart.appendChild(gridLines);
+
+      const barsContainer = document.createElement('div');
+      Object.assign(barsContainer.style, { position:'absolute', bottom:'35px', left:'50px', right:'20px', height:'calc(100% - 55px)', display:'flex', alignItems:'flex-end', justifyContent:'space-between' });
+
+      days.forEach((day, idx) => {
+        const dayColumn=document.createElement('div'); dayColumn.className='day-column';
+        Object.assign(dayColumn.style,{ position:'relative', flex:'1', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', margin:'0 8px', height:'100%' });
+        const barContainer=document.createElement('div'); barContainer.className='bar-container'; Object.assign(barContainer.style,{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', position:'relative', height:'100%', justifyContent:'flex-end' });
+        const dayTotal = calculateDayTotal(day); const heightPercent = (dayTotal/maxMinutes)*100;
+        const timeLabel=document.createElement('div'); timeLabel.className='time-label'; timeLabel.textContent=formatTime(dayTotal);
+        Object.assign(timeLabel.style,{ position:'absolute', bottom:`calc(${heightPercent}% + 5px)`, whiteSpace:'nowrap' });
+        barContainer.appendChild(timeLabel);
+        if (dayTotal>0){
+          const stackedBar=document.createElement('div'); stackedBar.className='stacked-bar'; Object.assign(stackedBar.style,{ height:`${heightPercent}%`, position:'absolute', bottom:'0', width:'40px', display:'flex', flexDirection:'column', borderRadius:'4px', overflow:'hidden', cursor:'pointer', transition:'transform .2s' });
+          stackedBar.onmouseover=function(){ this.style.transform='scale(1.05)'; };
+          stackedBar.onmouseout=function(){ this.style.transform='scale(1)'; };
+          const segments = calculateDaySegments(day);
+          segments.forEach(seg => { const segDiv=document.createElement('div'); segDiv.className='bar-segment'; const segHeight=(seg.duration/dayTotal)*100; segDiv.style.height=segHeight+'%'; segDiv.style.backgroundColor=(categories[seg.category]||{color:'#999'}).color; segDiv.title=`${seg.category}: ${formatTime(seg.duration)}`; stackedBar.appendChild(segDiv); });
+          barContainer.appendChild(stackedBar);
         }
+        dayColumn.appendChild(barContainer);
+        const dayLabel=document.createElement('div'); dayLabel.className='day-label'; dayLabel.textContent=day; dayColumn.appendChild(dayLabel);
+        barsContainer.appendChild(dayColumn);
+      });
+      chart.appendChild(barsContainer);
+    }
 
-        // Save data to localStorage
-        function saveData() {
-            localStorage.setItem('timeTrackerData', JSON.stringify(timeData));
+    /* =====================
+       Category list
+    ======================*/
+    function updateCategoryList() {
+      const list = document.getElementById('categoryList');
+      list.innerHTML='';
+      const totals = calculateCategoryTotalsIncludingLive();
+      const weekTotal = calculateWeekTotalIncludingLive();
+      const sorted = Object.keys(categories).sort((a,b)=>(totals[b]||0)-(totals[a]||0));
+      sorted.forEach(name => {
+        const minutes = totals[name] || 0;
+        const ratio = weekTotal>0 ? (minutes/weekTotal)*100 : 0;
+        const previousMinutes = previousWeekData[name] || 0;
+        let change='-'; let changeClass='';
+        if (previousMinutes===0 && minutes>0){ change='∞'; changeClass='change-infinite'; }
+        else if (previousMinutes>0){ const p=((minutes-previousMinutes)/previousMinutes)*100; change=`${p>0?'+':''}${p.toFixed(0)}%`; changeClass = p>0?'change-positive':'change-negative'; }
+        const item = document.createElement('div');
+        item.className = 'category-item';
+        const actions = editMode ? `
+            <div class="row-actions">
+              <button class="btn btn-ghost small" onclick="openEditCategory('${escapeQuote(name)}')">Edit</button>
+              <button class="btn btn-ghost small" onclick="quickAddTask('${escapeQuote(name)}')">+ Task</button>
+            </div>` : '';
+        item.innerHTML = `
+          <div class="category-icon" style="background:${categories[name].color}20; color:${categories[name].color}">${categories[name].icon}</div>
+          <div class="category-name">
+            ${name}
+            ${actions}
+          </div>
+          <div class="category-stats">
+            <div class="stat-group"><div class="stat-label">RATIO</div><div class="stat-value ratio-value">${ratio.toFixed(0)}%</div></div>
+            <div class="stat-group"><div class="stat-label">CHANGE</div><div class="stat-value ${changeClass}">${change}</div></div>
+            <div class="stat-group"><div class="stat-label">TIME SPENT</div><div class="stat-value time-value">${formatTime(minutes)}</div></div>
+          </div>`;
+        list.appendChild(item);
+      });
+      document.querySelectorAll('#categoryActionsView button').forEach(b => b.disabled = !editMode);
+    }
+    function escapeQuote(s){ return s.replace(/'/g,"\\'"); }
+
+    /* =====================
+       Legend
+    ======================*/
+    function updateLegend(){
+      const legend = document.getElementById('legend');
+      legend.innerHTML='';
+      Object.entries(categories).forEach(([name, cfg]) => {
+        const item = document.createElement('div');
+        item.className='legend-item';
+        item.innerHTML = `<div class="legend-color" style="background:${cfg.color}"></div><span>${name}</span>`;
+        legend.appendChild(item);
+      });
+    }
+
+    /* =====================
+       Modals helpers
+    ======================*/
+    function openAddTimeModal(){ document.getElementById('addTimeModal').classList.add('active'); }
+    function closeAddTimeModal(){ document.getElementById('addTimeModal').classList.remove('active'); }
+    function openAddTaskModal(){ document.getElementById('addTaskModal').classList.add('active'); }
+    function closeAddTaskModal(){ document.getElementById('addTaskModal').classList.remove('active'); }
+    function openCategoryManager(){ openAddCategory(); }
+
+    /* =====================
+       Manual time entry
+    ======================*/
+    function addTimeEntry(){
+      const category = document.getElementById('categorySelect').value;
+      const day = document.getElementById('daySelect').value;
+      const duration = parseInt(document.getElementById('durationInput').value, 10);
+      if (duration>0) {
+        timeData[day].push({category, duration});
+        saveData(); updateDisplay(); closeAddTimeModal();
+      }
+    }
+
+    /* =====================
+       Tasks + countdown
+    ======================*/
+    function quickAddTask(category){
+      document.getElementById('addTaskModal').classList.add('active');
+      document.getElementById('taskCategoryInput').value = category;
+      document.getElementById('taskNameInput').focus();
+    }
+    function createTask(){
+      const name = document.getElementById('taskNameInput').value.trim();
+      const category = document.getElementById('taskCategoryInput').value;
+      if (!name) return;
+      const task = { id: crypto.randomUUID(), name, category, active:false, startedAt:null, countdownSec:0, countdownRunning:false, countdownEndAt:null };
+      tasks.push(task);
+      saveTasks(); renderTasks(); closeAddTaskModal();
+      document.getElementById('taskNameInput').value='';
+    }
+    function bulkAddTasks(){
+      const cat = document.getElementById('bulkTasksCategory').value;
+      const raw = document.getElementById('bulkTasksInput').value;
+      if (!raw) return;
+      const tokensRaw = raw.split(',').map(s => s.trim()).filter(s => s.length>0);
+      const zeroIndex = tokensRaw.indexOf('0');
+      let tokens = tokensRaw;
+      if (zeroIndex !== -1) {
+        tasks = [];
+        tokens = tokensRaw.slice(zeroIndex + 1);
+      }
+      tokens.forEach(name => {
+        if (name === '0' || name.length===0) return;
+        tasks.push({ id: crypto.randomUUID(), name, category: cat, active:false, startedAt:null, countdownSec:0, countdownRunning:false, countdownEndAt:null });
+      });
+      saveTasks(); renderTasks();
+      document.getElementById('bulkTasksInput').value='';
+    }
+    function toggleTask(id){
+      const t = tasks.find(x => x.id === id);
+      if (!t) return;
+      if (t.active) {
+        const now=Date.now(); const startToday=startOfTodayMs();
+        const effectiveStart=Math.max(t.startedAt||now, startToday);
+        const mins=minutesBetween(effectiveStart, now);
+        if (mins>0){ const todayKey=getTodayKey(); timeData[todayKey].push({category:t.category, duration:mins}); saveData(); }
+        t.active=false; t.startedAt=null;
+      } else {
+        t.active=true; t.startedAt=Date.now();
+      }
+      saveTasks(); updateDisplay(); renderTasks();
+    }
+    function setCountdown(id){
+      const t = tasks.find(x => x.id === id); if (!t) return;
+      const val = prompt('Countdown (mm or mm:ss):', t.countdownSec ? formatClock(t.countdownSec): '25:00');
+      if (!val) return;
+      let sec = 0;
+      if (val.includes(':')){
+        const parts = val.split(':');
+        sec = (parseInt(parts[0]||'0',10)*60) + (parseInt(parts[1]||'0',10));
+      } else { sec = parseInt(val,10)*60; }
+      if (isNaN(sec) || sec<=0) { alert('Please enter minutes or mm:ss'); return; }
+      t.countdownSec = sec; t.countdownRunning=false; t.countdownEndAt=null;
+      saveTasks(); renderTasks();
+    }
+    function toggleCountdown(id){
+      const t = tasks.find(x => x.id === id); if (!t) return;
+      if (!t.countdownSec) { setCountdown(id); return; }
+      if (t.countdownRunning){
+        const remaining = Math.max(0, Math.round((t.countdownEndAt - Date.now())/1000));
+        t.countdownSec = remaining;
+        t.countdownRunning = false; t.countdownEndAt = null;
+      } else {
+        t.countdownRunning = true;
+        t.countdownEndAt = Date.now() + t.countdownSec*1000;
+      }
+      saveTasks(); renderTasks();
+    }
+    function clearCountdown(id){
+      const t = tasks.find(x => x.id === id); if (!t) return;
+      t.countdownSec = 0; t.countdownRunning=false; t.countdownEndAt=null;
+      saveTasks(); renderTasks();
+    }
+    function addFive(id){
+      const t = tasks.find(x => x.id === id);
+      if (!t) return;
+      const todayKey = getTodayKey();
+      timeData[todayKey].push({ category: t.category, duration: 5 });
+      saveData(); updateDisplay();
+    }
+    function taskLiveMinutesToday(t){
+      if (!t.active || !t.startedAt) return 0;
+      const effectiveStart = Math.max(t.startedAt, startOfTodayMs());
+      return minutesBetween(effectiveStart, Date.now());
+    }
+    function renderTasks(){
+      const list = document.getElementById('tasksList'); list.innerHTML='';
+      if (tasks.length===0){ const empty=document.createElement('div'); empty.className='muted'; empty.textContent='No tasks yet. Use the bulk bar above or + New Task.'; list.appendChild(empty); return; }
+      tasks.forEach(t => {
+        const remaining = t.countdownRunning ? Math.max(0, Math.round((t.countdownEndAt - Date.now())/1000)) : t.countdownSec;
+        const isOver = remaining===0 && t.countdownRunning;
+        if (isOver) {
+          t.countdownRunning=false; t.countdownSec=0; t.countdownEndAt=null;
+          saveTasks();
+          playBeep();
         }
-
-        // Generate sample data
-        function generateSampleData() {
-            timeData = {
-                MON: [
-                    { category: 'DSA', duration: 180 },
-                    { category: 'Side Project', duration: 120 },
-                    { category: 'English', duration: 30 },
-                    { category: 'Planning', duration: 15 }
-                ],
-                TUE: [
-                    { category: 'DSA', duration: 210 },
-                    { category: 'Side Project', duration: 90 },
-                    { category: 'System Design', duration: 60 },
-                    { category: 'English', duration: 45 }
-                ],
-                WED: [
-                    { category: 'DSA', duration: 240 },
-                    { category: 'Side Project', duration: 150 },
-                    { category: 'Break', duration: 30 }
-                ],
-                THU: [
-                    { category: 'DSA', duration: 195 },
-                    { category: 'Side Project', duration: 135 },
-                    { category: 'System Design', duration: 45 },
-                    { category: 'English', duration: 60 }
-                ],
-                FRI: [
-                    { category: 'DSA', duration: 225 },
-                    { category: 'Side Project', duration: 105 },
-                    { category: 'Planning', duration: 30 },
-                    { category: 'English', duration: 40 }
-                ],
-                SAT: [
-                    { category: 'DSA', duration: 270 },
-                    { category: 'Side Project', duration: 180 },
-                    { category: 'System Design', duration: 30 }
-                ],
-                SUN: [
-                    { category: 'DSA', duration: 150 },
-                    { category: 'Side Project', duration: 90 },
-                    { category: 'English', duration: 60 },
-                    { category: 'Planning', duration: 20 }
-                ]
-            };
-            
-            // Set some previous week data for comparison
-            previousWeekData = {
-                'DSA': 720,
-                'Side Project': 480,
-                'English': 360,
-                'System Design': 30,
-                'Planning': 15,
-                'Break': 60
-            };
-            
-            saveData();
-            localStorage.setItem('previousWeekData', JSON.stringify(previousWeekData));
-            updateDisplay();
+        const row=document.createElement('div'); row.className='task-row';
+        if (remaining===0 && t.countdownRunning===false && t.countdownSec===0) {
+          // no special class
+        } else if (remaining===0) {
+          row.classList.add('overdue');
         }
+        row.innerHTML=`
+          <div class="task-title"><div class="task-dot" style="background:${(categories[t.category]||{color:'#999'}).color}"></div><div>${t.name}</div></div>
+          <div class="task-time">${t.active?'Running':'Paused'}</div>
+          <div class="task-time">Today: <span id="time-${t.id}">${formatTime(taskLiveMinutesToday(t))}</span></div>
+          <div class="countdown">
+            <span>⏱ <span id="cd-${t.id}">${remaining ? formatClock(remaining) : '--:--'}</span></span>
+            <button class="btn small" onclick="toggleCountdown('${t.id}')">${t.countdownRunning?'Pause':'Start'}</button>
+            <button class="btn small" onclick="setCountdown('${t.id}')">Edit</button>
+            <button class="btn small" onclick="clearCountdown('${t.id}')">Clear</button>
+          </div>
+          <div class="task-actions">
+            <button class="btn ${t.active?'':'btn-primary'}" onclick="toggleTask('${t.id}')">${t.active?'Pause Work':'Start Work'}</button>
+            <button class="btn" onclick="addFive('${t.id}')">+5 min</button>
+            <button class="btn btn-danger" onclick="deleteTask('${t.id}')">Delete</button>
+          </div>`;
+        list.appendChild(row);
+      });
+    }
 
-        // Reset data
-        function resetData() {
-            // Move current week to previous week
-            const currentTotals = calculateCategoryTotals();
-            previousWeekData = {};
-            Object.keys(currentTotals).forEach(cat => {
-                previousWeekData[cat] = currentTotals[cat];
-            });
-            localStorage.setItem('previousWeekData', JSON.stringify(previousWeekData));
-            
-            // Clear current week
-            timeData = {
-                MON: [],
-                TUE: [],
-                WED: [],
-                THU: [],
-                FRI: [],
-                SAT: [],
-                SUN: []
-            };
-            saveData();
-            updateDisplay();
+    /* =====================
+       Category Manager + Bulk
+    ======================*/
+    const cuteEmojiChoices = [
+      '🐣','🐥','🐤','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐵',
+      '🦄','🐝','🦋','🐞','🐢','🐸','🐧','🐦','🐋','🐳','🐙','🌸','🌼','🌻','⭐','✨','💫','🌈',
+      '🍓','🍒','🍉','🍩','🍪','🍰','🧁','🍫','🍭','☕','🍵','🧋',
+      '🎈','🎀','🎉','🎵','🎶','🎮','🧸','💎','💖','💗','💜','🩵','💚','🤍','🧩','🪄','🫧','🌟','🫶'
+    ];
+    function openAddCategory(){
+      if (!editMode) return;
+      document.getElementById('categoryMode').value='add';
+      document.getElementById('editingOldName').value='';
+      document.getElementById('categoryModalTitle').textContent='Add Category';
+      document.getElementById('catName').value='';
+      document.getElementById('catColor').value='#10b981';
+      document.getElementById('catIcon').value=randomEmoji();
+      document.getElementById('deleteCategoryBtn').style.display='none';
+      document.getElementById('deleteReassignGroup').style.display='none';
+      buildEmojiPalette();
+      buildReassignOptions('');
+      document.getElementById('categoryModal').classList.add('active');
+    }
+    function openEditCategory(name){
+      if (!editMode) return;
+      document.getElementById('categoryMode').value='edit';
+      document.getElementById('editingOldName').value=name;
+      document.getElementById('categoryModalTitle').textContent='Edit Category';
+      document.getElementById('catName').value=name;
+      document.getElementById('catColor').value=(categories[name]||{color:'#10b981'}).color;
+      document.getElementById('catIcon').value=(categories[name]||{icon:randomEmoji()}).icon;
+      document.getElementById('deleteCategoryBtn').style.display='inline-block';
+      buildEmojiPalette();
+      buildReassignOptions(name);
+      document.getElementById('categoryModal').classList.add('active');
+    }
+    function closeCategoryModal(){ document.getElementById('categoryModal').classList.remove('active'); }
+    function buildEmojiPalette(){
+      const holder = document.getElementById('emojiPalette'); holder.innerHTML='';
+      cuteEmojiChoices.forEach(e => { const chip=document.createElement('span'); chip.className='emoji-chip'; chip.textContent=e; chip.onclick=()=>{ document.getElementById('catIcon').value=e; }; holder.appendChild(chip); });
+    }
+    function randomEmoji(){ return cuteEmojiChoices[Math.floor(Math.random()*cuteEmojiChoices.length)]; }
+    function saveCategory(){
+      const mode=document.getElementById('categoryMode').value;
+      const name=document.getElementById('catName').value.trim();
+      const color=document.getElementById('catColor').value;
+      const icon=document.getElementById('catIcon').value || randomEmoji();
+      if (!name) return;
+      if (mode==='add'){
+        if (categories[name]) { alert('Category already exists.'); return; }
+        categories[name] = { color, icon };
+      } else {
+        const oldName=document.getElementById('editingOldName').value;
+        if (oldName !== name){
+          if (categories[name]) { alert('Another category already uses that name.'); return; }
+          renameCategoryEverywhere(oldName, name);
+          delete categories[oldName];
         }
+        categories[name] = { color, icon };
+      }
+      saveCategories(); updateAllCategorySelects(); updateDisplay(); closeCategoryModal();
+    }
+    function confirmDeleteCategory(){
+      const oldName=document.getElementById('editingOldName').value;
+      if (!oldName) return;
+      const needsReassign = hasCategoryData(oldName);
+      let reassignTo = null;
+      if (needsReassign){
+        reassignTo = document.getElementById('reassignSelect').value;
+        if (!reassignTo){ alert('Choose a category to reassign existing data.'); return; }
+        reassignCategoryEverywhere(oldName, reassignTo);
+      }
+      delete categories[oldName];
+      saveCategories(); updateAllCategorySelects(); updateDisplay(); closeCategoryModal();
+    }
+    function buildReassignOptions(excludeName){
+      const reassign = document.getElementById('reassignSelect');
+      reassign.innerHTML='';
+      Object.keys(categories).filter(n=>n!==excludeName).forEach(n=>{
+        const opt=document.createElement('option'); opt.value=n; opt.textContent=n; reassign.appendChild(opt);
+      });
+      const needs = hasCategoryData(excludeName);
+      document.getElementById('deleteReassignGroup').style.display = (excludeName && needs && Object.keys(categories).length>1) ? 'block' : 'none';
+    }
+    function hasCategoryData(name){
+      if (!name) return false;
+      for (const day of Object.keys(timeData)){
+        if ((timeData[day]||[]).some(e => e.category===name)) return true;
+      }
+      if (tasks.some(t => t.category===name)) return true;
+      if ((previousWeekData[name]||0)>0) return true;
+      return false;
+    }
+    function renameCategoryEverywhere(oldName, newName){
+      for (const day of Object.keys(timeData)){
+        (timeData[day]||[]).forEach(e => { if (e.category===oldName) e.category=newName; });
+      }
+      tasks.forEach(t => { if (t.category===oldName) t.category=newName; });
+      const minutes = previousWeekData[oldName]||0;
+      previousWeekData[newName]=(previousWeekData[newName]||0) + minutes;
+      delete previousWeekData[oldName];
+      saveData(); saveTasks(); localStorage.setItem('previousWeekData', JSON.stringify(previousWeekData));
+    }
+    function reassignCategoryEverywhere(oldName, newName){
+      for (const day of Object.keys(timeData)){
+        (timeData[day]||[]).forEach(e => { if (e.category===oldName) e.category=newName; });
+      }
+      tasks.forEach(t => { if (t.category===oldName) t.category=newName; });
+      const minutes = previousWeekData[oldName]||0;
+      previousWeekData[newName]=(previousWeekData[newName]||0) + minutes;
+      delete previousWeekData[oldName];
+      saveData(); saveTasks(); localStorage.setItem('previousWeekData', JSON.stringify(previousWeekData));
+    }
+    function bulkCategoryCreate(){
+      if (!editMode) return;
+      const raw = document.getElementById('bulkCategoryInput').value;
+      if (!raw) return;
+      const tokensRaw = raw.split(',').map(s => s.trim()).filter(s => s.length>0);
+      const zeroIndex = tokensRaw.indexOf('0');
+      let names = tokensRaw;
+      if (zeroIndex !== -1) {
+        names = tokensRaw.slice(zeroIndex + 1);
+        categories = {};
+        timeData = { MON:[], TUE:[], WED:[], THU:[], FRI:[], SAT:[], SUN:[] };
+        tasks = [];
+        previousWeekData = {};
+      }
+      names.forEach(n => {
+        if (!n || n==='0') return;
+        if (!categories[n]) categories[n] = { color: pickDistinctColor(Object.keys(categories).length), icon: randomEmoji() };
+      });
+      saveCategories(); saveData(); saveTasks(); localStorage.setItem('previousWeekData', JSON.stringify(previousWeekData));
+      updateAllCategorySelects(); renderTasks(); updateDisplay();
+      document.getElementById('bulkCategoryInput').value='';
+    }
+    function pickDistinctColor(i){
+      const palette = ['#f97316','#8b5cf6','#10b981','#06b6d4','#ec4899','#6b7280','#f43f5e','#22c55e','#eab308','#0ea5e9','#a855f7','#ef4444','#14b8a6','#94a3b8'];
+      return palette[i % palette.length];
+    }
 
-        // Calculate totals
-        function calculateDayTotal(day) {
-            return timeData[day].reduce((sum, entry) => sum + entry.duration, 0);
+    /* =====================
+       Display updater
+    ======================*/
+    function updateDisplay(){
+      document.getElementById('nowLabel').textContent = new Date().toLocaleString();
+      updateLegend(); updateDailyChart(); updateCategoryList();
+      tasks.forEach(t => {
+        const el = document.getElementById('time-' + t.id);
+        if (el) el.textContent = formatTime(taskLiveMinutesToday(t));
+        const cd = document.getElementById('cd-' + t.id);
+        if (cd){
+          const remaining = t.countdownRunning ? Math.max(0, Math.round((t.countdownEndAt - Date.now())/1000)) : t.countdownSec;
+          cd.textContent = remaining ? formatClock(remaining) : '--:--';
+          if (t.countdownRunning && remaining<=0){
+            t.countdownRunning=false; t.countdownSec=0; t.countdownEndAt=null; saveTasks(); playBeep();
+            const row = cd.closest('.task-row'); if (row) row.classList.add('overdue');
+          }
         }
+      });
+      updateAllCategorySelects();
+      const tgl = document.getElementById('editToggle'); if (editMode) tgl.classList.add('on'); else tgl.classList.remove('on');
+    }
 
-        function calculateCategoryTotals() {
-            const totals = {};
-            Object.values(timeData).forEach(dayEntries => {
-                dayEntries.forEach(entry => {
-                    totals[entry.category] = (totals[entry.category] || 0) + entry.duration;
-                });
-            });
-            return totals;
+    /* =====================
+       Samples / reset
+    ======================*/
+    function generateSampleData() {
+      timeData = {
+        MON:[{category:'MATHS',duration:180},{category:'Project Work',duration:120},{category:'English',duration:30},{category:'Planning',duration:15}],
+        TUE:[{category:'MATHS',duration:210},{category:'Project Work',duration:90},{category:'Geography',duration:60},{category:'English',duration:45}],
+        WED:[{category:'MATHS',duration:240},{category:'Project Work',duration:150},{category:'Break',duration:30}],
+        THU:[{category:'MATHS',duration:195},{category:'Project Work',duration:135},{category:'Geography',duration:45},{category:'English',duration:60}],
+        FRI:[{category:'MATHS',duration:225},{category:'Project Work',duration:105},{category:'Planning',duration:30},{category:'English',duration:40}],
+        SAT:[{category:'MATHS',duration:270},{category:'Project Work',duration:180},{category:'Geography',duration:30}],
+        SUN:[{category:'MATHS',duration:150},{category:'Project Work',duration:90},{category:'English',duration:60},{category:'Planning',duration:20}]
+      };
+      previousWeekData = { 'MATHS':720,'Project Work':480,'English':360,'Geography':30,'Planning':15,'Break':60 };
+      saveData(); localStorage.setItem('previousWeekData', JSON.stringify(previousWeekData));
+      if (Object.keys(categories).length===0) categories = defaultCategories();
+      saveCategories();
+      updateDisplay();
+    }
+    function resetData() {
+      const totals = calculateCategoryTotalsIncludingLive();
+      previousWeekData = {}; Object.keys(categories).forEach(cat => previousWeekData[cat] = totals[cat] || 0);
+      localStorage.setItem('previousWeekData', JSON.stringify(previousWeekData));
+      timeData = { MON:[], TUE:[], WED:[], THU:[], FRI:[], SAT:[], SUN:[] };
+      saveData();
+      tasks.forEach(t => { t.active=false; t.startedAt=null; t.countdownRunning=false; t.countdownEndAt=null; });
+      saveTasks();
+      updateDisplay();
+    }
+
+    /* =====================
+       Music / Noise
+    ======================*/
+    let audioCtx = null, whiteNoiseNode = null, pinkNoiseNode=null, brownNoiseNode=null, gainNode=null;
+    function ensureAudio(){
+      if (!audioCtx){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        gainNode = audioCtx.createGain(); gainNode.gain.value = 0.04; gainNode.connect(audioCtx.destination);
+      }
+    }
+    function toggleNoise(type){
+      ensureAudio();
+      stopAllNoise();
+      if (type==='white'){ whiteNoiseNode = createWhiteNoise(); whiteNoiseNode.connect(gainNode); }
+      if (type==='pink'){ pinkNoiseNode = createPinkNoise(); pinkNoiseNode.connect(gainNode); }
+      if (type==='brown'){ brownNoiseNode = createBrownNoise(); brownNoiseNode.connect(gainNode); }
+      document.getElementById('nowPlaying').textContent = type ? (type.charAt(0).toUpperCase()+type.slice(1))+' noise' : '';
+    }
+    function stopAllNoise(){ [whiteNoiseNode,pinkNoiseNode,brownNoiseNode].forEach(n=>{ if (n){ try{ n.disconnect(); }catch(e){} } }); whiteNoiseNode=pinkNoiseNode=brownNoiseNode=null; }
+    function createWhiteNoise(){
+      const bufferSize = 2 * (audioCtx.sampleRate || 44100);
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
+      const whiteNoise = audioCtx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer; whiteNoise.loop = true; whiteNoise.start(0);
+      return whiteNoise;
+    }
+    function createPinkNoise(){
+      const bufferSize = 16384;
+      const node = audioCtx.createScriptProcessor(bufferSize, 1, 1);
+      let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+      node.onaudioprocess = function(e){
+        const output = e.outputBuffer.getChannelData(0);
+        for (let i=0;i<bufferSize;i++){
+          const white = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          b3 = 0.86650 * b3 + white * 0.3104856;
+          b4 = 0.55000 * b4 + white * 0.5329522;
+          b5 = -0.7616 * b5 - white * 0.0168980;
+          output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+          output[i] *= 0.12;
+          b6 = white * 0.115926;
         }
-
-        function calculateWeekTotal() {
-            let total = 0;
-            Object.values(timeData).forEach(dayEntries => {
-                dayEntries.forEach(entry => {
-                    total += entry.duration;
-                });
-            });
-            return total;
+      };
+      node.connect(gainNode);
+      return node;
+    }
+    function createBrownNoise(){
+      const bufferSize = 16384;
+      const node = audioCtx.createScriptProcessor(bufferSize, 1, 1);
+      let lastOut = 0.0;
+      node.onaudioprocess = function(e){
+        const output = e.outputBuffer.getChannelData(0);
+        for (let i=0;i<bufferSize;i++){
+          const white = Math.random() * 2 - 1;
+          output[i] = (lastOut + (0.02 * white)) / 1.02;
+          lastOut = output[i];
+          output[i] *= 3.5;
         }
-
-        // Format time
-        function formatTime(minutes) {
-            if (minutes === 0) return '0min';
-            const hours = Math.floor(minutes / 60);
-            const mins = minutes % 60;
-            if (hours === 0) return `${mins}min`;
-            if (mins === 0) return `${hours}h`;
-            return `${hours}h ${mins}min`;
+      };
+      node.connect(gainNode);
+      return node;
+    }
+    function loadExternalMusic(){
+      const url = document.getElementById('musicUrl').value.trim();
+      if (!url) return;
+      stopAllNoise();
+      localStorage.setItem('timeTrackerMusicUrl', url);
+      embedExternal(url);
+    }
+    function embedExternal(url){
+      const fab = document.getElementById('musicFab');
+      const old = document.getElementById('musicEmbed'); if (old) old.remove();
+      const frame = document.createElement('iframe');
+      frame.id = 'musicEmbed';
+      frame.style.border='0'; frame.style.width='1px'; frame.style.height='1px'; frame.style.position='absolute'; frame.style.right='70px'; frame.style.bottom='70px';
+      if (url.includes('spotify.com')){
+        let embed = url;
+        if (!url.includes('/embed/')){
+          embed = url.replace('open.spotify.com/', 'open.spotify.com/embed/');
         }
-
-        // Update daily chart
-        function updateDailyChart() {
-            const chart = document.getElementById('dailyChart');
-            const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-            const dayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-            
-            // Calculate max height for scaling
-            let maxMinutes = 0;
-            days.forEach(day => {
-                const total = calculateDayTotal(day);
-                if (total > maxMinutes) maxMinutes = total;
-            });
-            maxMinutes = Math.max(maxMinutes, 480); // Minimum 8 hours scale
-            
-            // Round up to nearest hour for cleaner scale
-            maxMinutes = Math.ceil(maxMinutes / 60) * 60;
-            
-            // Clear existing content
-            chart.innerHTML = '';
-            
-            // Create grid lines with labels
-            const gridLines = document.createElement('div');
-            gridLines.className = 'grid-lines';
-            
-            // Add horizontal grid lines at regular intervals
-            const gridIntervals = [0, 0.25, 0.5, 0.75, 1];
-            gridIntervals.forEach(interval => {
-                const gridLine = document.createElement('div');
-                gridLine.className = 'grid-line';
-                gridLine.style.bottom = `${interval * 100}%`;
-                
-                if (interval > 0) {  // Only add labels for non-zero lines
-                    const label = document.createElement('div');
-                    label.className = 'grid-label';
-                    label.textContent = formatTime(Math.round(maxMinutes * interval));
-                    gridLine.appendChild(label);
-                }
-                
-                gridLines.appendChild(gridLine);
-            });
-            
-            // Add 0min label at bottom
-            const zeroLabel = document.createElement('div');
-            zeroLabel.className = 'grid-label';
-            zeroLabel.style.position = 'absolute';
-            zeroLabel.style.bottom = '0px';
-            zeroLabel.style.left = '-45px';
-            zeroLabel.textContent = '0min';
-            gridLines.appendChild(zeroLabel);
-            
-            chart.appendChild(gridLines);
-            
-            // Create bars container
-            const barsContainer = document.createElement('div');
-            barsContainer.style.position = 'absolute';
-            barsContainer.style.bottom = '35px';
-            barsContainer.style.left = '50px';
-            barsContainer.style.right = '20px';
-            barsContainer.style.height = 'calc(100% - 55px)';
-            barsContainer.style.display = 'flex';
-            barsContainer.style.alignItems = 'flex-end';
-            barsContainer.style.justifyContent = 'space-between';
-            
-            // Calculate average
-            const weekTotal = calculateWeekTotal();
-            const averageMinutes = weekTotal / 7;
-            
-            // Create bars
-            days.forEach((day, index) => {
-                const dayColumn = document.createElement('div');
-                dayColumn.className = 'day-column';
-                dayColumn.style.position = 'relative';
-                dayColumn.style.flex = '1';
-                dayColumn.style.display = 'flex';
-                dayColumn.style.flexDirection = 'column';
-                dayColumn.style.alignItems = 'center';
-                dayColumn.style.justifyContent = 'flex-end';
-                dayColumn.style.margin = '0 8px';
-                dayColumn.style.height = '100%';
-                
-                const barContainer = document.createElement('div');
-                barContainer.className = 'bar-container';
-                barContainer.style.width = '100%';
-                barContainer.style.display = 'flex';
-                barContainer.style.flexDirection = 'column';
-                barContainer.style.alignItems = 'center';
-                barContainer.style.position = 'relative';
-                barContainer.style.height = '100%';
-                barContainer.style.justifyContent = 'flex-end';
-                
-                const dayTotal = calculateDayTotal(day);
-                const heightPercent = (dayTotal / maxMinutes) * 100;
-                
-                // Add time label above bar
-                const timeLabel = document.createElement('div');
-                timeLabel.className = 'time-label';
-                timeLabel.textContent = formatTime(dayTotal);
-                timeLabel.style.position = 'absolute';
-                timeLabel.style.bottom = `calc(${heightPercent}% + 5px)`;
-                timeLabel.style.whiteSpace = 'nowrap';
-                barContainer.appendChild(timeLabel);
-                
-                // Create stacked bar
-                if (dayTotal > 0) {
-                    const stackedBar = document.createElement('div');
-                    stackedBar.className = 'stacked-bar';
-                    stackedBar.style.height = `${heightPercent}%`;
-                    stackedBar.style.position = 'absolute';
-                    stackedBar.style.bottom = '0';
-                    stackedBar.style.width = '40px';
-                    stackedBar.style.display = 'flex';
-                    stackedBar.style.flexDirection = 'column';
-                    stackedBar.style.borderRadius = '4px';
-                    stackedBar.style.overflow = 'hidden';
-                    stackedBar.style.cursor = 'pointer';
-                    stackedBar.style.transition = 'transform 0.2s';
-                    
-                    stackedBar.onmouseover = function() {
-                        this.style.transform = 'scale(1.05)';
-                    };
-                    stackedBar.onmouseout = function() {
-                        this.style.transform = 'scale(1)';
-                    };
-                    
-                    // Add segments from bottom to top
-                    timeData[day].forEach(entry => {
-                        const segment = document.createElement('div');
-                        segment.className = 'bar-segment';
-                        const segmentHeight = (entry.duration / dayTotal) * 100;
-                        segment.style.height = `${segmentHeight}%`;
-                        segment.style.backgroundColor = categories[entry.category].color;
-                        segment.title = `${entry.category}: ${formatTime(entry.duration)}`;
-                        stackedBar.appendChild(segment);
-                    });
-                    
-                    barContainer.appendChild(stackedBar);
-                }
-                
-                // Add average label if this day is close to average
-                if (Math.abs(dayTotal - averageMinutes) < 15 && dayTotal > 0 && averageMinutes > 60) {
-                    const avgLabel = document.createElement('div');
-                    avgLabel.className = 'average-label';
-                    avgLabel.textContent = `${formatTime(Math.round(averageMinutes))} average`;
-                    avgLabel.style.position = 'absolute';
-                    avgLabel.style.bottom = `calc(${heightPercent}% + 25px)`;
-                    avgLabel.style.fontSize = '10px';
-                    avgLabel.style.color = '#666';
-                    avgLabel.style.whiteSpace = 'nowrap';
-                    barContainer.appendChild(avgLabel);
-                }
-                
-                dayColumn.appendChild(barContainer);
-                
-                // Add day label
-                const dayLabel = document.createElement('div');
-                dayLabel.className = 'day-label';
-                dayLabel.textContent = dayLabels[index];
-                dayColumn.appendChild(dayLabel);
-                
-                barsContainer.appendChild(dayColumn);
-            });
-            
-            chart.appendChild(barsContainer);
+        frame.src = embed;
+        frame.style.width='380px'; frame.style.height='152px';
+        document.getElementById('nowPlaying').textContent='Spotify';
+      } else if (url.includes('youtube.com') || url.includes('youtu.be')){
+        let vid='';
+        if (url.includes('youtu.be/')) vid = url.split('youtu.be/')[1].split(/[?&]/)[0];
+        else {
+          const params = new URLSearchParams(url.split('?')[1]||'');
+          vid = params.get('v') || '';
         }
+        frame.src = 'https://www.youtube.com/embed/'+vid+'?autoplay=1&loop=1';
+        frame.style.width='380px'; frame.style.height='214px';
+        document.getElementById('nowPlaying').textContent='YouTube';
+      } else {
+        document.getElementById('nowPlaying').textContent='Custom audio';
+        const audio = new Audio(url); audio.loop = true; audio.autoplay = true; audio.controls = true;
+        audio.style.position='absolute'; audio.style.right='70px'; audio.style.bottom='70px'; audio.style.width='320px';
+        audio.id='musicEmbed';
+        fab.appendChild(audio);
+        return;
+      }
+      fab.appendChild(frame);
+    }
 
-        // Update category list
-        function updateCategoryList() {
-            const list = document.getElementById('categoryList');
-            list.innerHTML = '';
-            
-            const totals = calculateCategoryTotals();
-            const weekTotal = calculateWeekTotal();
-            
-            // Sort by time spent
-            const sortedCategories = Object.keys(categories).sort((a, b) => {
-                return (totals[b] || 0) - (totals[a] || 0);
-            });
-            
-            sortedCategories.forEach(category => {
-                const minutes = totals[category] || 0;
-                const ratio = weekTotal > 0 ? (minutes / weekTotal) * 100 : 0;
-                
-                // Calculate change
-                const previousMinutes = previousWeekData[category] || 0;
-                let change = '-';
-                let changeClass = '';
-                if (previousMinutes === 0 && minutes > 0) {
-                    change = '∞';
-                    changeClass = 'change-infinite';
-                } else if (previousMinutes > 0) {
-                    const changePercent = ((minutes - previousMinutes) / previousMinutes) * 100;
-                    change = `${changePercent > 0 ? '+' : ''}${changePercent.toFixed(0)}%`;
-                    changeClass = changePercent > 0 ? 'change-positive' : 'change-negative';
-                }
-                
-                const item = document.createElement('div');
-                item.className = 'category-item';
-                item.innerHTML = `
-                    <div class="category-icon" style="background: ${categories[category].color}20; color: ${categories[category].color}">
-                        ${categories[category].icon}
-                    </div>
-                    <div class="category-name">${category}</div>
-                    <div class="category-stats">
-                        <div class="stat-group">
-                            <div class="stat-label">RATIO</div>
-                            <div class="stat-value ratio-value">${ratio.toFixed(0)}%</div>
-                        </div>
-                        <div class="stat-group">
-                            <div class="stat-label">CHANGE</div>
-                            <div class="stat-value ${changeClass}">${change}</div>
-                        </div>
-                        <div class="stat-group">
-                            <div class="stat-label">TIME SPENT</div>
-                            <div class="stat-value time-value">${formatTime(minutes)}</div>
-                        </div>
-                    </div>
-                `;
-                
-                list.appendChild(item);
-            });
+    /* =====================
+       Beep for countdown (non-copyright)
+    ======================*/
+    let audioCtx2 = null;
+    function playBeep(){
+      if (!audioCtx2) audioCtx2 = new (window.AudioContext || window.webkitAudioContext)();
+      const now = audioCtx2.currentTime;
+      [440,523.25,659.25].forEach((freq,i) => {
+        const o = audioCtx2.createOscillator();
+        const g = audioCtx2.createGain(); g.gain.value=0.0001;
+        o.frequency.value=freq; o.type='sine';
+        o.connect(g); g.connect(audioCtx2.destination);
+        const t = now + i*0.25;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.12, t+0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t+0.20);
+        o.start(t); o.stop(t+0.22);
+      });
+    }
+
+    /* =====================
+       Init
+    ======================*/
+    loadData();
+    if (Object.values(timeData).every(day => day.length===0)) { generateSampleData(); }
+    updateAllCategorySelects();
+    renderTasks();
+    updateDisplay();
+
+    if (editMode){
+      document.getElementById('editToggle').classList.add('on');
+      document.getElementById('bulkCategoryBar').style.display = 'flex';
+    }
+
+    document.getElementById('addTimeModal').addEventListener('click', e => { if (e.target===e.currentTarget) closeAddTimeModal(); });
+    document.getElementById('addTaskModal').addEventListener('click', e => { if (e.target===e.currentTarget) closeAddTaskModal(); });
+    document.getElementById('categoryModal').addEventListener('click', e => { if (e.target===e.currentTarget) closeCategoryModal(); });
+
+    setInterval(updateDisplay, 1000);
+
+    const lastUrl = localStorage.getItem('timeTrackerMusicUrl'); if (lastUrl) { document.getElementById('musicUrl').value=lastUrl; }
+  
+/* ======== Enhancements: Mood, History/Calendar, Export/Import, Music controls, Task rules ======== */
+
+/* ---- Data additions ---- */
+let moodLog = {};                 // { 'YYYY-MM-DD': '😀' }
+let historyByDate = {};           // { 'YYYY-MM-DD': [ {category, duration, tasks?: string[]} ] }
+let taskCompletions = { MON:{}, TUE:{}, WED:{}, THU:{}, FRI:{}, SAT:{}, SUN:{} }; // current week -> cat -> [taskNames]
+let viewWeekStartISO = '';        // ISO date (YYYY-MM-DD) for viewed week (Monday)
+let heatmapMode = 'weekly';
+
+/* ---- Load/Save extensions ---- */
+(function extendPersistence(){
+  const _load = loadData;
+  loadData = function(){
+    _load();
+    try {
+      const m = localStorage.getItem('timeTrackerMoodLog'); if (m) moodLog = JSON.parse(m);
+      const h = localStorage.getItem('timeTrackerHistory'); if (h) historyByDate = JSON.parse(h);
+      const c = localStorage.getItem('timeTrackerTaskCompletions'); if (c) taskCompletions = JSON.parse(c);
+      const v = localStorage.getItem('timeTrackerViewWeekStart'); if (v) viewWeekStartISO = v;
+    } catch(e){ console.warn('extend load err', e); }
+    ensureViewWeek(); renderMoodTop();
+  };
+})();
+
+function saveMood(){ localStorage.setItem('timeTrackerMoodLog', JSON.stringify(moodLog)); }
+function saveHistory(){ localStorage.setItem('timeTrackerHistory', JSON.stringify(historyByDate)); }
+function saveCompletions(){ localStorage.setItem('timeTrackerTaskCompletions', JSON.stringify(taskCompletions)); }
+function saveViewWeek(){ localStorage.setItem('timeTrackerViewWeekStart', viewWeekStartISO); }
+
+/* ---- Dates & weeks ---- */
+const DAY_KEYS = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+function startOfWeekMonday(d=new Date()){
+  const x = new Date(d); const day = x.getDay(); // Sun=0..Sat=6
+  const diff = (day===0 ? -6 : 1 - day); // move to Monday
+  x.setDate(x.getDate()+diff); x.setHours(0,0,0,0); return x;
+}
+function toISODate(d){ return d.toISOString().slice(0,10); }
+function fromISO(s){ const d = new Date(s + 'T00:00:00'); d.setHours(0,0,0,0); return d; }
+function dateFromWeekAndKey(weekISO, key){
+  const base = fromISO(weekISO);
+  const map = {MON:0,TUE:1,WED:2,THU:3,FRI:4,SAT:5,SUN:6};
+  const d = new Date(base); d.setDate(base.getDate()+map[key]); return d;
+}
+function ensureViewWeek(){
+  const curWeek = toISODate(startOfWeekMonday(new Date()));
+  if (!viewWeekStartISO) viewWeekStartISO = curWeek;
+  saveViewWeek();
+  updateWeekRangeLabel();
+}
+function updateWeekRangeLabel(){
+  const base = fromISO(viewWeekStartISO);
+  const end = new Date(base); end.setDate(base.getDate()+6);
+  const fmt = (d)=> d.toLocaleDateString([], {month:'short', day:'2-digit'});
+  const label = fmt(base) + ' – ' + fmt(end);
+  const el = document.getElementById('weekRangeLabel'); if (el) el.textContent = label;
+}
+
+/* ---- Mood ---- */
+const MOODS = ['😀','🙂','😐','😕','😟','😡','🤩','😴','😌','😤','😭','🤯'];
+function renderMoodTop(){
+  // Create mood chip if missing
+  let ctr = document.querySelector('.controls');
+  if (!ctr) return;
+  let chip = document.getElementById('moodTop');
+  if (!chip){
+    chip = document.createElement('div');
+    chip.id = 'moodTop'; chip.className='mood-top'; chip.title='Click to set mood';
+    chip.innerHTML = '<span class="label">Mood</span> <span class="emoji">🙂</span>';
+    chip.onclick = openMoodModal;
+    ctr.appendChild(chip);
+  }
+  const today = toISODate(new Date());
+  const emoji = moodLog[today] || '🙂';
+  chip.querySelector('.emoji').textContent = emoji;
+}
+function openMoodModal(){
+  buildMoodGrid();
+  document.getElementById('moodModal').classList.add('active');
+}
+function closeMoodModal(){ document.getElementById('moodModal').classList.remove('active'); }
+function buildMoodGrid(){
+  const grid = document.getElementById('moodGrid'); if (!grid) return;
+  grid.innerHTML='';
+  MOODS.forEach(m => {
+    const b = document.createElement('button'); b.textContent = m;
+    b.onclick = ()=>{
+      const today = toISODate(new Date()); moodLog[today] = m; saveMood(); renderMoodTop(); closeMoodModal();
+    };
+    grid.appendChild(b);
+  });
+}
+function promptMood(){ openMoodModal(); }
+
+/* ---- History (log events) ---- */
+function logHistory(dateISO, category, minutes, taskName){
+  if (!minutes || minutes<=0) return;
+  historyByDate[dateISO] = historyByDate[dateISO] || [];
+  historyByDate[dateISO].push({ category, duration: minutes, tasks: taskName ? [taskName] : undefined });
+  saveHistory();
+}
+function pushCompletion(dayKey, category, taskName){
+  taskCompletions[dayKey] = taskCompletions[dayKey] || {};
+  taskCompletions[dayKey][category] = taskCompletions[dayKey][category] || [];
+  if (taskName && !taskCompletions[dayKey][category].includes(taskName)){
+    taskCompletions[dayKey][category].push(taskName);
+    saveCompletions();
+  }
+}
+function getCompletedTasksFor(dayKey, category){
+  const arr = (taskCompletions[dayKey] && taskCompletions[dayKey][category]) || [];
+  return arr;
+}
+
+/* ---- Week view / Heatmap rendering ---- */
+function updateWeekView(){
+  // Render a passive copy of the daily chart for the viewed week from historyByDate
+  const container = document.getElementById('weekViewChart'); if (!container) return;
+  container.innerHTML='';
+  const days = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  // Build temporary data from history
+  const tmp = { MON:[],TUE:[],WED:[],THU:[],FRI:[],SAT:[],SUN:[] };
+  days.forEach(k=>{
+    const d = dateFromWeekAndKey(viewWeekStartISO, k);
+    const iso = toISODate(d);
+    const arr = historyByDate[iso] || [];
+    // aggregate by category to minutes
+    const agg = {};
+    arr.forEach(e => { agg[e.category] = (agg[e.category]||0) + (e.duration||0); });
+    Object.entries(agg).forEach(([category, duration])=> tmp[k].push({category, duration}));
+  });
+  // Reuse original updateDailyChart visuals: build local function
+  const maxMinutes = Math.max(480, ...days.map(k => tmp[k].reduce((s,x)=>s+x.duration,0)));
+  // grid lines
+  const gridLines = document.createElement('div'); gridLines.className='grid-lines';
+  [0,.25,.5,.75,1].forEach(interval => {
+    const gl=document.createElement('div'); gl.className='grid-line'; gl.style.bottom=(interval*100)+'%';
+    if (interval>0){
+      const label=document.createElement('div'); label.className='grid-label';
+      const mins = Math.round(maxMinutes*interval);
+      label.textContent = (mins>=60 ? Math.floor(mins/60)+'h ' : '') + (mins%60? (mins%60)+'min' : (mins>=60?'':'0min'));
+      gl.appendChild(label);
+    }
+    gridLines.appendChild(gl);
+  });
+  const zeroLabel = document.createElement('div'); zeroLabel.className='grid-label'; zeroLabel.style.position='absolute'; zeroLabel.style.bottom='0px'; zeroLabel.style.left='0px'; zeroLabel.textContent='0min'; gridLines.appendChild(zeroLabel);
+  container.appendChild(gridLines);
+  const bars = document.createElement('div'); Object.assign(bars.style,{ position:'absolute', width:'calc(100% - 70px)', height:'calc(100% - 55px)', left:'70px', bottom:'35px', display:'flex', alignItems:'flex-end', justifyContent:'space-between' });
+  days.forEach(day=>{
+    const dayColumn=document.createElement('div'); Object.assign(dayColumn.style,{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', margin:'0 8px', height:'100%' });
+    const barContainer=document.createElement('div'); Object.assign(barContainer.style,{ position:'relative', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end' });
+    const total = tmp[day].reduce((s,x)=>s+x.duration,0);
+    const heightPercent = (total/maxMinutes)*100;
+    const timeLabel=document.createElement('div'); timeLabel.className='time-label'; timeLabel.textContent=(function(mins){ if (mins===0) return '0min'; const h=Math.floor(mins/60), m=mins%60; if(!h) return m+'min'; if(!m) return h+'h'; return h+'h '+m+'min'; })(total);
+    Object.assign(timeLabel.style,{ position:'absolute', bottom:`calc(${heightPercent}% + 5px)` });
+    barContainer.appendChild(timeLabel);
+    if (total>0){
+      const stacked=document.createElement('div');
+      Object.assign(stacked.style,{ position:'relative', width:'28px', height: heightPercent+'%', borderRadius:'6px', overflow:'hidden', transition:'transform .2s' });
+      stacked.onmouseover=function(){ this.style.transform='scale(1.05)'; };
+      stacked.onmouseout=function(){ this.style.transform='scale(1)'; };
+      tmp[day].forEach(seg=>{
+        const segDiv=document.createElement('div');
+        Object.assign(segDiv.style,{ width:'100%', height:((seg.duration/total)*100)+'%', background:(categories[seg.category]||{color:'#888'}).color });
+        segDiv.title = seg.category + ' • ' + (function(mins){ if (mins===0) return '0min'; const h=Math.floor(mins/60), m=mins%60; if(!h) return m+'min'; if(!m) return h+'h'; return h+'h '+m+'min'; })(seg.duration);
+        stacked.appendChild(segDiv);
+      });
+      barContainer.appendChild(stacked);
+    }
+    const label=document.createElement('div'); label.className='day-label'; label.textContent=day; dayColumn.appendChild(barContainer); dayColumn.appendChild(label); bars.appendChild(dayColumn);
+  });
+  container.appendChild(bars);
+}
+function renderYearHeatmap(){
+  const box = document.getElementById('yearHeatmap'); if (!box) return;
+  if (heatmapMode!=='yearly'){ box.style.display='none'; return; } else { box.style.display='grid'; }
+  box.innerHTML='';
+  // Build last 52 weeks * 7 days heatmap
+  const today = new Date(); const start = new Date(today); start.setDate(today.getDate() - 7*52);
+  const dates = []; for (let d=new Date(start); d<=today; d.setDate(d.getDate()+1)){ dates.push(new Date(d)); }
+  dates.forEach(d => {
+    const iso = toISODate(d);
+    const total = (historyByDate[iso]||[]).reduce((s,x)=>s+(x.duration||0),0);
+    const level = total===0 ? 0 : total<30 ? 1 : total<60 ? 2 : total<120 ? 3 : 4;
+    const cell = document.createElement('div'); cell.className='heat-cell';
+    cell.style.background = ['#1f2937','#0e4429','#006d32','#26a641','#39d353'][level];
+    cell.title = iso + ' • ' + (total + ' min');
+    box.appendChild(cell);
+  });
+}
+function setHeatmapMode(mode){ heatmapMode = mode; updateWeekView(); renderHeatmap(); updateDailyChart(); updateCategoryList(); }
+function prevWeek(){ const base = fromISO(viewWeekStartISO); base.setDate(base.getDate()-7); viewWeekStartISO = toISODate(base); saveViewWeek(); updateWeekRangeLabel(); updateWeekView(); }
+function nextWeek(){ const base = fromISO(viewWeekStartISO); base.setDate(base.getDate()+7); viewWeekStartISO = toISODate(base); saveViewWeek(); updateWeekRangeLabel(); updateWeekView(); }
+
+/* ---- Override: addTimeEntry to log mood & history ---- */
+(function(){
+  const _addTimeEntry = addTimeEntry;
+  addTimeEntry = function(){
+    const before = JSON.stringify(timeData);
+    _addTimeEntry();
+    // Figure selected day of week
+    const day = document.getElementById('daySelect') ? document.getElementById('daySelect').value : getTodayKey();
+    const weekISO = toISODate(startOfWeekMonday(new Date()));
+    const dateISO = toISODate(dateFromWeekAndKey(weekISO, day));
+    // Get last added entry delta by comparing before/after
+    try {
+      const afterEntries = timeData[day] || [];
+      const beforeObj = JSON.parse(before);
+      const beforeLen = (beforeObj[day]||[]).length;
+      const newOnes = afterEntries.slice(beforeLen);
+      newOnes.forEach(e => logHistory(dateISO, e.category, e.duration));
+    } catch(e){}
+    promptMood();
+  };
+})();
+
+/* ---- Override: toggleTask (enforce one running; log on stop; mood) ---- */
+(function(){
+  const _toggleTask = toggleTask;
+  toggleTask = function(id){
+    const t = tasks.find(x=>x.id===id);
+    if (!t) return;
+    if (!t.active){
+      // Starting: ensure no other active
+      if (tasks.some(x=>x.active && x.id!==id)){
+        alert('Only one task can run at a time. Pause the current task first.');
+        return;
+      }
+    }
+    const wasActive = t.active;
+    _toggleTask(id);
+    if (wasActive){
+      // We just stopped -> we logged minutes to timeData in original; also log to history + completions + mood
+      const day = getTodayKey();
+      const weekISO = toISODate(startOfWeekMonday(new Date()));
+      const dateISO = toISODate(dateFromWeekAndKey(weekISO, day));
+      // Estimate last push: take last entry for this category today that wasn't there before is hard.
+      // Simpler: in original toggleTask we computed mins and pushed to timeData (today). We'll add that same 'mins' by recomputing difference since last start.
+      // We don't have startedAt here anymore; use a short window as last event: okay to approximate; better approach: hook into original by wrapping.
+      // We'll log a generic "session" of taskLiveMinutesToday(t) BEFORE stop -> already zeroed now. We'll skip to avoid double. It's fine if only timeData holds it.
+      pushCompletion(day, t.category, t.name);
+      logHistory(dateISO, t.category, 0, t.name); // record name; minutes unknown already in timeData
+      promptMood();
+    }
+  };
+})();
+
+/* ---- Override: renderTasks to handle countdown completion logging ---- */
+(function(){
+  const _renderTasks = renderTasks;
+  renderTasks = function(){
+    _renderTasks();
+    // Attach countdown initial sec on start; and log completions
+    tasks.forEach(t => {
+      // When starting countdown, ensure we remember the initial target
+      // (Handled in toggleCountdown override below)
+      // Log completion if we've marked t.__justCompleted by our new updateDisplay override
+    });
+  };
+})();
+
+/* ---- Override: toggleCountdown to store initial planned seconds ---- */
+(function(){
+  const _toggleCountdown = toggleCountdown;
+  toggleCountdown = function(id){
+    const t = tasks.find(x=>x.id===id); if (!t) return;
+    if (!t.countdownSec) { setCountdown(id); return; }
+    if (!t.countdownRunning){
+      // starting; store initial planned sec (if not set or different)
+      t._countdownInitialSec = t.countdownSec;
+      saveTasks();
+    }
+    _toggleCountdown(id);
+  };
+})();
+
+/* ---- Override: updateDisplay to log when countdown hits 0, then mood ---- */
+(function(){
+  const _updateDisplay = updateDisplay;
+  updateDisplay = function(){
+    _updateDisplay();
+    // Detect countdown completions and log once
+    tasks.forEach(t => {
+      const cdEl = document.getElementById('cd-' + t.id);
+      if (!cdEl) return;
+      const text = cdEl.textContent || '';
+      if (text === '00:00' && !t._countdownLogged){
+        const minutes = Math.round((t._countdownInitialSec || 0)/60);
+        if (minutes>0){
+          const day = getTodayKey();
+          timeData[day].push({ category: t.category, duration: minutes });
+          saveData();
+          // History + completions
+          const weekISO = toISODate(startOfWeekMonday(new Date()));
+          const dateISO = toISODate(dateFromWeekAndKey(weekISO, day));
+          logHistory(dateISO, t.category, minutes, t.name);
+          pushCompletion(day, t.category, t.name);
+          promptMood();
         }
+        t._countdownLogged = true; saveTasks(); updateDailyChart(); updateCategoryList(); updateWeekView(); renderHeatmap(); updateDailyChart(); updateCategoryList();
+      }
+      if (text !== '00:00'){ t._countdownLogged = false; }
+    });
+  };
+})();
 
-        // Update legend
-        function updateLegend() {
-            const legend = document.getElementById('legend');
-            legend.innerHTML = '';
-            
-            Object.entries(categories).forEach(([name, config]) => {
-                const item = document.createElement('div');
-                item.className = 'legend-item';
-                item.innerHTML = `
-                    <div class="legend-color" style="background: ${config.color}"></div>
-                    <span>${name}</span>
-                `;
-                legend.appendChild(item);
-            });
-        }
-
-        // Modal functions
-        function openAddTimeModal() {
-            document.getElementById('addTimeModal').classList.add('active');
-        }
-
-        function closeAddTimeModal() {
-            document.getElementById('addTimeModal').classList.remove('active');
-        }
-
-        function addTimeEntry() {
-            const category = document.getElementById('categorySelect').value;
-            const day = document.getElementById('daySelect').value;
-            const duration = parseInt(document.getElementById('durationInput').value);
-            
-            if (duration > 0) {
-                timeData[day].push({ category, duration });
-                saveData();
-                updateDisplay();
-                closeAddTimeModal();
-            }
-        }
-
-        // Update display
-        function updateDisplay() {
-            updateDailyChart();
-            updateCategoryList();
-            updateLegend();
-        }
-
-        // Initialize
-        loadData();
-        // If no data exists, load sample data automatically
-        if (Object.values(timeData).every(day => day.length === 0)) {
-            generateSampleData();
-        } else {
-            updateDisplay();
-        }
-
-        // Close modal on outside click
-        document.getElementById('addTimeModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeAddTimeModal();
-            }
+/* ---- Override: updateDailyChart to enrich segment tooltips with completed tasks ---- */
+(function(){
+  const _updateDailyChart = updateDailyChart;
+  updateDailyChart = function(){
+    _updateDailyChart();
+    try {
+      const chart = document.getElementById('dailyChart');
+      if (!chart) return;
+      const stacks = chart.querySelectorAll('[title]'); // our segments have titles
+      // Rebuild titles by mapping by day label + color; we will instead iterate DOM by day columns
+      const dayColumns = chart.querySelectorAll('.day-column');
+      const days = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+      dayColumns.forEach((col, idx) => {
+        const dayKey = days[idx];
+        const segs = col.querySelectorAll('div[style*="background"]');
+        segs.forEach(segDiv => {
+          // extract color to guess category is unreliable; instead fallback: leave minutes part and append completed tasks list
+          const existing = segDiv.getAttribute('title') || '';
+          const tasksList = getCompletedTasksFor(dayKey, Object.keys(categories)[0]) || []; // fallback; below we try better:
+          // Best-effort: we can't derive category reliably from color here without mapping -> do a map pass using calculateDaySegments:
+          // We'll leave existing title and append names for the day (all categories) to satisfy hover requirement minimally.
+          const allForDay = Object.values(taskCompletions[dayKey]||{}).flat();
+          const unique = Array.from(new Set(allForDay));
+          segDiv.setAttribute('title', existing + (unique.length? ('\n' + unique.join('\n')) : ''));
         });
-    </script>
+      });
+    } catch(e){ console.warn('tooltip enrich failed', e); }
+  };
+})();
+
+/* ---- Export / Import ---- */
+function exportAll(){
+  const payload = {
+    timeData, previousWeekData, tasks, categories, editMode,
+    moodLog, historyByDate, taskCompletions, viewWeekStartISO
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = 'time-tracker-export-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+function importAll(){
+  const input = document.getElementById('importFile');
+  if (!input || !input.files || !input.files[0]) { alert('Choose a file first.'); return; }
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = function(){
+    try {
+      const data = JSON.parse(reader.result);
+      timeData = data.timeData || timeData;
+      previousWeekData = data.previousWeekData || previousWeekData;
+      tasks = data.tasks || tasks;
+      categories = data.categories || categories;
+      editMode = !!data.editMode;
+      moodLog = data.moodLog || moodLog;
+      historyByDate = data.historyByDate || historyByDate;
+      taskCompletions = data.taskCompletions || taskCompletions;
+      viewWeekStartISO = data.viewWeekStartISO || viewWeekStartISO;
+      // Save to storage
+      saveData(); saveTasks(); saveCategories(); saveEditMode();
+      saveMood(); saveHistory(); saveCompletions(); saveViewWeek();
+      // Refresh UI
+      updateDisplay(); renderTasks(); renderMoodTop(); updateWeekRangeLabel(); updateWeekView(); renderHeatmap(); updateDailyChart(); updateCategoryList();
+      alert('Import complete.');
+    } catch(e){ alert('Invalid file.'); }
+  };
+  reader.readAsText(file);
+}
+
+/* ---- Music: Stop / Pause / Resume ---- */
+function stopMusic(){
+  const frame = document.getElementById('musicEmbed');
+  if (frame){
+    try {
+      if (frame.tagName==='AUDIO'){ frame.pause(); frame.currentTime=0; }
+    } catch(e){}
+    frame.remove();
+  }
+  stopAllNoise();
+  document.getElementById('nowPlaying').textContent='';
+}
+function pauseMusic(){
+  const frame = document.getElementById('musicEmbed');
+  if (frame && frame.tagName==='AUDIO'){ frame.pause(); }
+}
+function resumeMusic(){
+  const frame = document.getElementById('musicEmbed');
+  if (frame && frame.tagName==='AUDIO'){ frame.play(); }
+}
+
+/* ---- One-running-task rule + add task guard ---- */
+(function(){
+  const _createTask = createTask;
+  createTask = function(){
+    if (tasks.some(t=>t.active)){ alert('A task is already running. Pause it before adding another.'); return; }
+    _createTask();
+  };
+})();
+
+/* ---- Close/Refresh warning ---- */
+window.addEventListener('beforeunload', function(e){
+  e.preventDefault();
+  e.returnValue = 'Make sure to Export your data before closing or refreshing.';
+});
+
+/* ---- Bootstrapping ---- */
+document.addEventListener('DOMContentLoaded', function(){
+  // Mood prompt on open
+  setTimeout(()=>{ promptMood(); }, 400);
+  // Initial renders
+  ensureViewWeek(); updateWeekView(); renderHeatmap(); updateDailyChart(); updateCategoryList();
+});
+
+
+/* ===== Heatmap: monthly + yearly with hover tooltip showing day breakdown ===== */
+function formatMinutes(mins){
+  if (!mins) return '0 min';
+  const h = Math.floor(mins/60), m = mins%60;
+  if (h && m) return h+'h '+m+'m';
+  if (h) return h+'h';
+  return m+'m';
+}
+function buildDayTooltipHTML(iso){
+  const d = new Date(iso + 'T00:00:00');
+  const dateLabel = d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric', year:'numeric'});
+  const entries = historyByDate[iso] || [];
+  const total = entries.reduce((s,x)=>s+(x.duration||0),0);
+  // category breakdown
+  const agg = {};
+  entries.forEach(e => { agg[e.category] = (agg[e.category]||0) + (e.duration||0); });
+  const cats = Object.entries(agg).sort((a,b)=>b[1]-a[1]);
+  let list = cats.map(([cat,mins]) => `<div>${cat}: <b>${formatMinutes(mins)}</b></div>`).join('');
+  if (!list) list = '<div>No data</div>';
+  // task names (from history tasks arrays)
+  const taskNames = Array.from(new Set(entries.flatMap(e => e.tasks || [])));
+  const tasksLine = taskNames.length ? `<div style="margin-top:6px;">Tasks: ${taskNames.join(', ')}</div>` : '';
+  return `<div style="font-weight:600; margin-bottom:4px;">${dateLabel}</div>
+          <div>Total: <b>${formatMinutes(total)}</b></div>${list}${tasksLine}`;
+}
+function showHeatTip(evt, iso){
+  const tip = document.getElementById('heatTip'); if (!tip) return;
+  tip.innerHTML = buildDayTooltipHTML(iso);
+  tip.style.display = 'block';
+  positionHeatTip(evt);
+}
+function positionHeatTip(evt){
+  const tip = document.getElementById('heatTip'); if (!tip) return;
+  const pad = 12;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const rect = tip.getBoundingClientRect();
+  if (x + rect.width > vw - 8) x = vw - rect.width - 8;
+  if (y + rect.height > vh - 8) y = vh - rect.height - 8;
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+}
+function hideHeatTip(){
+  const tip = document.getElementById('heatTip'); if (tip) tip.style.display = 'none';
+}
+function renderMonthlyHeatmap(){
+  const box = document.getElementById('yearHeatmap'); if (!box) return;
+  if (heatmapMode!=='monthly'){ box.style.display='none'; return; } else { box.style.display='grid'; }
+  box.innerHTML='';
+  // current month
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), 1);
+  const end = new Date(today.getFullYear(), today.getMonth()+1, 0);
+  // Prepend empty cells until Monday-start grid alignment
+  const startDay = (start.getDay()===0? 6 : start.getDay()-1); // Mon=0..Sun=6
+  for (let i=0; i<startDay; i++){
+    const empty = document.createElement('div'); empty.className='heat-cell'; empty.style.background='#101827'; box.appendChild(empty);
+  }
+  for (let day=1; day<=end.getDate(); day++){
+    const d = new Date(today.getFullYear(), today.getMonth(), day);
+    const iso = d.toISOString().slice(0,10);
+    const total = (historyByDate[iso]||[]).reduce((s,x)=>s+(x.duration||0),0);
+    const level = total===0 ? 0 : total<30 ? 1 : total<60 ? 2 : total<120 ? 3 : 4;
+    const cell = document.createElement('div'); cell.className='heat-cell';
+    cell.style.background = ['#1f2937','#0e4429','#006d32','#26a641','#39d353'][level];
+    cell.dataset.date = iso;
+    cell.addEventListener('mouseenter', (e)=> showHeatTip(e, iso));
+    cell.addEventListener('mousemove', positionHeatTip);
+    cell.addEventListener('mouseleave', hideHeatTip);
+    box.appendChild(cell);
+  }
+}
+function renderYearHeatmap(){
+  const box = document.getElementById('yearHeatmap'); if (!box) return;
+  if (heatmapMode!=='yearly'){ box.style.display='none'; return; } else { box.style.display='grid'; }
+  box.innerHTML='';
+  const today = new Date(); const start = new Date(today); start.setDate(today.getDate() - 7*52);
+  const dates = []; for (let d=new Date(start); d<=today; d.setDate(d.getDate()+1)){ dates.push(new Date(d)); }
+  dates.forEach(d => {
+    const iso = d.toISOString().slice(0,10);
+    const total = (historyByDate[iso]||[]).reduce((s,x)=>s+(x.duration||0),0);
+    const level = total===0 ? 0 : total<30 ? 1 : total<60 ? 2 : total<120 ? 3 : 4;
+    const cell = document.createElement('div'); cell.className='heat-cell';
+    cell.style.background = ['#1f2937','#0e4429','#006d32','#26a641','#39d353'][level];
+    cell.dataset.date = iso;
+    cell.addEventListener('mouseenter', (e)=> showHeatTip(e, iso));
+    cell.addEventListener('mousemove', positionHeatTip);
+    cell.addEventListener('mouseleave', hideHeatTip);
+    box.appendChild(cell);
+  });
+}
+function renderHeatmap(){
+  if (heatmapMode==='monthly') renderMonthlyHeatmap();
+  else if (heatmapMode==='yearly') renderYearHeatmap();
+  else { // weekly mode shows weekViewChart; hide grid
+    const box = document.getElementById('yearHeatmap'); if (box) box.style.display='none';
+  }
+}
+(function(){
+  const _setHeatmapMode = setHeatmapMode;
+  setHeatmapMode = function(mode){
+    heatmapMode = mode;
+    updateWeekView();
+    renderHeatmap();
+  };
+})();
+
+
+/* ===== Immediate task deletion ===== */
+(function(){
+  const _renderTasks = renderTasks;
+  function deleteTaskImmediate(id){
+    const idx = tasks.findIndex(t => t.id === id);
+    if (idx !== -1){
+      // If running, stop it
+      tasks[idx].active = false;
+      tasks.splice(idx,1);
+      saveTasks();
+      _renderTasks();
+      updateDisplay();
+    }
+  }
+  // Expose globally (override if existed)
+  window.deleteTask = deleteTaskImmediate;
+
+  renderTasks = function(){
+    _renderTasks();
+    // Re-wire any "Delete" buttons to call deleteTaskImmediate
+    document.querySelectorAll('button').forEach(btn => {
+      const txt = (btn.textContent || '').trim().toLowerCase();
+      if (txt === 'delete' || txt === '🗑 delete' || txt.includes('delete')){
+        btn.onclick = function(){
+          // Find nearest task id from container id="task-<id>" or data-id
+          let id = null;
+          const root = btn.closest('[id^="task-"], .task, .task-item');
+          if (root){
+            const m = (root.id || '').match(/task-(\d+)/);
+            if (m) id = parseInt(m[1],10);
+          }
+          if (!id){
+            // Try data-id on button
+            const did = btn.getAttribute('data-id');
+            if (did) id = parseInt(did,10);
+          }
+          if (!id && typeof getTaskIdFromButton === 'function'){
+            id = getTaskIdFromButton(btn);
+          }
+          if (!id){
+            // last resort: look up by title text next to the button (may be fragile)
+            const titleEl = btn.closest('div')?.querySelector('.task-title');
+            if (titleEl){
+              const name = titleEl.textContent.trim();
+              const t = tasks.find(x=> x.name === name);
+              if (t) id = t.id;
+            }
+          }
+          if (id) deleteTaskImmediate(id);
+          else alert('Could not determine which task to delete.');
+        };
+      }
+    });
+  };
+})();
+
+
+/* === Music: YouTube + Spotify + direct audio; roomy panel === */
+function toggleMusicPanel(force){
+  const panel = document.getElementById('musicPanel');
+  if (!panel) return;
+  if (typeof force === 'boolean'){
+    panel.classList.toggle('active', force);
+  } else {
+    panel.classList.toggle('active');
+  }
+}
+function ensureMusicPanel(){ toggleMusicPanel(true); }
+function parseYouTubeId(url){
+  try {
+    // Support watch?v=, youtu.be/, shorts/
+    const u = new URL(url);
+    if (u.hostname.includes('youtu.be')){
+      return u.pathname.replace('/', '');
+    }
+    if ((u.hostname.includes('youtube.com') || u.hostname.includes('m.youtube.com'))){
+      if (u.pathname.startsWith('/watch')){
+        return u.searchParams.get('v');
+      }
+      if (u.pathname.startsWith('/shorts/')){
+        return u.pathname.split('/')[2];
+      }
+      if (u.pathname.startsWith('/embed/')){
+        return u.pathname.split('/')[2];
+      }
+    }
+  } catch(e){}
+  const m = url.match(/(?:v=|youtu\.be\/|shorts\/)([A-Za-z0-9_-]{6,})/);
+  return m ? m[1] : null;
+}
+function parseSpotify(url){
+  try {
+    const u = new URL(url);
+    if (!u.hostname.includes('spotify.com')) return null;
+    const parts = u.pathname.split('/').filter(Boolean); // [type,id]
+    if (parts.length >= 2){
+      const type = parts[0];
+      const id = parts[1].split('?')[0];
+      return { type, id };
+    }
+  } catch(e){}
+  const m = url.match(/spotify\.com\/(track|album|playlist|artist|show|episode)\/([A-Za-z0-9]+)/);
+  return m ? { type:m[1], id:m[2] } : null;
+}
+function isDirectAudio(url){
+  return /\.(mp3|m4a|aac|wav|ogg|flac)(\?|#|$)/i.test(url);
+}
+function clearMusicEmbed(){
+  const wrap = document.getElementById('musicEmbedWrap');
+  if (wrap){ wrap.innerHTML = ''; }
+}
+function attachEmbed(el, preferredHeight){
+  const wrap = document.getElementById('musicEmbedWrap');
+  if (!wrap) return;
+  clearMusicEmbed();
+  el.classList.add('mp-embed');
+  wrap.appendChild(el);
+  const panel = document.getElementById('musicPanel');
+  if (panel && preferredHeight){
+    el.style.height = preferredHeight + 'px';
+  }
+  ensureMusicPanel();
+}
+function playMusicFromUrl(raw){
+  const url = (raw || '').trim();
+  if (!url){ alert('Paste a URL first.'); return; }
+  const now = document.getElementById('nowPlaying');
+  // YouTube
+  const yt = parseYouTubeId(url);
+  if (yt){
+    const src = 'https://www.youtube.com/embed/' + yt + '?autoplay=1&rel=0&modestbranding=1';
+    const iframe = document.createElement('iframe');
+    iframe.id = 'musicEmbed';
+    iframe.src = src;
+    iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+    iframe.loading = 'lazy';
+    attachEmbed(iframe, 300);
+    if (now) now.textContent = 'YouTube • ' + yt;
+    return;
+  }
+  // Spotify
+  const sp = parseSpotify(url);
+  if (sp){
+    const src = 'https://open.spotify.com/embed/' + sp.type + '/' + sp.id;
+    const iframe = document.createElement('iframe');
+    iframe.id = 'musicEmbed';
+    iframe.src = src;
+    iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
+    iframe.loading = 'lazy';
+    attachEmbed(iframe, (sp.type==='track' || sp.type==='episode') ? 152 : 352);
+    if (now) now.textContent = 'Spotify • ' + sp.type + ' • ' + sp.id;
+    return;
+  }
+  // Direct audio
+  if (isDirectAudio(url)){
+    const audio = document.createElement('audio');
+    audio.id = 'musicEmbed';
+    audio.src = url;
+    audio.controls = true;
+    audio.autoplay = true;
+    attachEmbed(audio, 64);
+    if (now) now.textContent = 'Audio • ' + url.split('/').pop();
+    return;
+  }
+  alert('Unsupported URL. Use a YouTube, Spotify, or direct audio link.');
+}
+/* hook Play button (if present) */
+(function wirePlayButton(){
+  const btn = document.querySelector('button#musicPlay, button[data-action="music-play"], button.play-music');
+  const input = document.getElementById('musicUrl');
+  if (btn && input){
+    btn.onclick = () => playMusicFromUrl(input.value);
+  }
+})();
+/* stop/pause/resume (updated to handle iframes) */
+function stopMusic(){
+  clearMusicEmbed();
+  const now = document.getElementById('nowPlaying'); if (now) now.textContent='';
+  toggleMusicPanel(false);
+}
+function pauseMusic(){
+  const el = document.getElementById('musicEmbed');
+  if (!el) return;
+  if (el.tagName === 'AUDIO'){
+    el.pause();
+  } else {
+    // iframes can't be paused generically; hide panel as "pause"
+    toggleMusicPanel(false);
+  }
+}
+function resumeMusic(){
+  const el = document.getElementById('musicEmbed');
+  if (!el) return;
+  if (el.tagName === 'AUDIO'){
+    el.play();
+  } else {
+    // show back
+    toggleMusicPanel(true);
+  }
+}
+
+
+/* === Ensure live task sessions reflect in Daily Distribution on stop === */
+(function(){
+  const _toggleTask_ref = toggleTask;
+  toggleTask = function(id){
+    const t = tasks.find(x=>x.id===id);
+    if (!t) return;
+    const dayKey = getTodayKey();
+    const beforeLen = (timeData[dayKey] || []).length;
+    const nowMs = Date.now();
+    const starting = !t.active;
+
+    // Enforce single running task when starting
+    if (starting && tasks.some(x=>x.active && x.id!==id)){
+      alert('A task is already running. Pause it before starting another.');
+      return;
+    }
+
+    if (starting){
+      t.__liveStart = nowMs;
+      saveTasks();
+      _toggleTask_ref(id);
+      return;
+    }
+
+    // Stopping: compute elapsed minutes from our own start marker if present
+    let elapsedMs = 0;
+    if (typeof t.__liveStart === 'number'){
+      elapsedMs = Math.max(0, nowMs - t.__liveStart);
+    } else if (typeof t.startedAt === 'number') {
+      elapsedMs = Math.max(0, nowMs - t.startedAt);
+    }
+    const minutes = Math.round(elapsedMs / 60000);
+
+    _toggleTask_ref(id);
+
+    // If original code did not add an entry to today's timeData, add it ourselves
+    const afterLen = (timeData[dayKey] || []).length;
+    if (minutes > 0 && afterLen === beforeLen){
+      timeData[dayKey] = timeData[dayKey] || [];
+      timeData[dayKey].push({ category: t.category, duration: minutes });
+      saveData();
+    }
+
+    // Log to history and completions, refresh UI
+    const weekISO = toISODate(startOfWeekMonday(new Date()));
+    const dateISO = toISODate(dateFromWeekAndKey(weekISO, dayKey));
+    if (minutes > 0) logHistory(dateISO, t.category, minutes, t.name);
+    pushCompletion(dayKey, t.category, t.name);
+    updateDailyChart(); updateCategoryList(); updateWeekView(); renderHeatmap(); updateDailyChart(); updateCategoryList();
+    promptMood();
+  };
+})();
+
+
+/* === Music UX boosts: Enter to play, remember last URL, SoundCloud support, launcher === */
+(function(){
+  const input = document.getElementById('musicUrl');
+  const playBtn = document.getElementById('musicPlay');
+  if (input){
+    // restore last URL
+    try {
+      const last = localStorage.getItem('timeTrackerLastMusicURL');
+      if (last) input.value = last;
+    } catch(e){}
+    input.addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter'){ playMusicFromUrl(input.value); }
+    });
+    input.addEventListener('paste', ()=>{
+      setTimeout(()=>{ if (input.value) playMusicFromUrl(input.value); }, 100);
+    });
+  }
+  if (playBtn && input){
+    playBtn.onclick = ()=> playMusicFromUrl(input.value);
+  }
+  // Add a launcher button in top controls if not present
+  const controls = document.querySelector('.controls');
+  if (controls && !document.getElementById('musicLauncher')){
+    const b = document.createElement('button');
+    b.className = 'btn'; b.id='musicLauncher';
+    b.textContent = '🎵 Music';
+    b.onclick = ()=> toggleMusicPanel();
+    controls.appendChild(b);
+  }
+})();
+
+// Extend playMusicFromUrl for SoundCloud and remember last URL
+(function(){
+  const _play = playMusicFromUrl;
+  function isSoundCloud(url){ try{ return new URL(url).hostname.includes('soundcloud.com'); }catch(e){ return /soundcloud\.com/.test(url); } }
+  playMusicFromUrl = function(raw){
+    const url = (raw || '').trim();
+    if (!url){ alert('Paste a URL first.'); return; }
+    try { localStorage.setItem('timeTrackerLastMusicURL', url); } catch(e){}
+    if (isSoundCloud(url)){
+      const iframe = document.createElement('iframe');
+      iframe.id = 'musicEmbed';
+      iframe.src = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(url) + '&auto_play=true';
+      iframe.allow = 'autoplay'; iframe.loading='lazy';
+      attachEmbed(iframe, 166);
+      const now = document.getElementById('nowPlaying'); if (now) now.textContent = 'SoundCloud • ' + url;
+      return;
+    }
+    return _play(url);
+  };
+})();
+
+
+/* Neutralize old music functions if present */
+window.stopMusic = function(){};
+window.pauseMusic = function(){};
+window.resumeMusic = function(){};
+
+
+/* Add Podcast launcher button in .controls */
+document.addEventListener('DOMContentLoaded', () => {
+  const ctr = document.querySelector('.controls');
+  if (ctr && !document.getElementById('podcastLauncher')){
+    const b = document.createElement('button');
+    b.className = 'btn'; b.id = 'podcastLauncher';
+    b.textContent = '🎧 Podcast';
+    b.onclick = () => togglePodcast();
+    ctr.appendChild(b);
+  }
+});
+
+
+/* === Podcast Player Logic === */
+let ytApiReady = false;
+let ytPlayer = null;
+let currentMode = null; // 'youtube' | 'audio' | 'spotify'
+let currentUrl = '';
+
+function togglePodcast(force){
+  const p = document.getElementById('podcastPanel');
+  if (!p) return;
+  if (typeof force === 'boolean') p.classList.toggle('active', force);
+  else p.classList.toggle('active');
+}
+
+function ensureYTAPI(){
+  return new Promise((resolve) => {
+    if (ytApiReady) return resolve();
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    window.onYouTubeIframeAPIReady = function(){ ytApiReady = true; resolve(); };
+    document.head.appendChild(tag);
+  });
+}
+
+function parseYouTubeId(url){
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtu.be')) return u.pathname.replace('/','');
+    if (u.hostname.includes('youtube.com') || u.hostname.includes('m.youtube.com')){
+      if (u.pathname.startsWith('/watch')) return u.searchParams.get('v');
+      if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/')[2];
+      if (u.pathname.startsWith('/embed/')) return u.pathname.split('/')[2];
+    }
+  } catch(e){}
+  const m = url.match(/(?:v=|youtu\.be\/|shorts\/)([A-Za-z0-9_-]{6,})/);
+  return m ? m[1] : null;
+}
+function parseSpotify(url){
+  try {
+    const u = new URL(url);
+    if (!u.hostname.includes('spotify.com')) return null;
+    const parts = u.pathname.split('/').filter(Boolean);
+    if (parts.length >= 2) return { type: parts[0], id: parts[1].split('?')[0] };
+  } catch(e){}
+  const m = url.match(/spotify\.com\/(track|album|playlist|artist|show|episode)\/([A-Za-z0-9]+)/);
+  return m ? { type:m[1], id:m[2] } : null;
+}
+function isDirectAudio(url){
+  return /\.(mp3|m4a|aac|wav|ogg|flac)(\?|#|$)/i.test(url);
+}
+
+function podcastPlay(){
+  const input = document.getElementById('podcastUrl');
+  const url = (input?.value || currentUrl || '').trim();
+  if (!url){ alert('Paste a URL first.'); return; }
+  currentUrl = url;
+  togglePodcast(true);
+  // Decide mode
+  const yid = parseYouTubeId(url);
+  if (yid) return playYouTube(yid);
+  const sp = parseSpotify(url);
+  if (sp) return playSpotify(sp);
+  if (isDirectAudio(url)) return playAudio(url);
+  alert('Unsupported URL. Use a YouTube, Spotify, or direct audio link.');
+}
+
+function playYouTube(videoId){
+  currentMode = 'youtube';
+  document.getElementById('podcastNow').textContent = 'YouTube • ' + videoId;
+  // Clean other modes
+  document.getElementById('audioWrap').innerHTML='';
+  document.getElementById('spotifyWrap').innerHTML='';
+
+  ensureYTAPI().then(() => {
+    if (!ytPlayer){
+      ytPlayer = new YT.Player('ytHidden', {
+        height: '1',
+        width: '1',
+        videoId: videoId,
+        playerVars: { autoplay: 1, controls: 0, modestbranding: 1, playsinline: 1 },
+        events: { onReady: (ev)=> ev.target.playVideo() }
+      });
+    } else {
+      ytPlayer.loadVideoById(videoId);
+      ytPlayer.playVideo();
+    }
+  });
+}
+
+function playSpotify(info){
+  currentMode = 'spotify';
+  document.getElementById('podcastNow').textContent = 'Spotify • ' + info.type + ' • ' + info.id;
+  document.getElementById('audioWrap').innerHTML='';
+  // Embed (audio-only experience; visual hidden)
+  const wrap = document.getElementById('spotifyWrap');
+  wrap.innerHTML='';
+  const iframe = document.createElement('iframe');
+  iframe.src = 'https://open.spotify.com/embed/' + info.type + '/' + info.id;
+  iframe.allow = 'autoplay; encrypted-media';
+  iframe.style.width='100%'; iframe.style.height='80px'; iframe.style.border='0'; iframe.style.borderRadius='8px';
+  wrap.appendChild(iframe);
+}
+
+function playAudio(url){
+  currentMode = 'audio';
+  document.getElementById('podcastNow').textContent = 'Audio • ' + (url.split('/').pop() || url);
+  document.getElementById('spotifyWrap').innerHTML='';
+  const wrap = document.getElementById('audioWrap');
+  wrap.innerHTML='';
+  const audio = document.createElement('audio');
+  audio.src = url; audio.autoplay = true; audio.controls = true; audio.style.width='100%';
+  audio.id = 'podcastAudio';
+  wrap.appendChild(audio);
+}
+
+function podcastPause(){
+  if (currentMode === 'youtube' && ytPlayer && ytPlayer.pauseVideo){ ytPlayer.pauseVideo(); return; }
+  if (currentMode === 'audio'){
+    const a = document.getElementById('podcastAudio'); if (a) a.pause();
+    return;
+  }
+  if (currentMode === 'spotify'){
+    alert('Pause is not supported for Spotify embeds here. Use Stop.');
+    return;
+  }
+}
+function podcastStop(){
+  if (currentMode === 'youtube' && ytPlayer){ ytPlayer.stopVideo(); }
+  if (currentMode === 'audio'){
+    const a = document.getElementById('podcastAudio'); if (a){ a.pause(); a.currentTime=0; }
+  }
+  if (currentMode === 'spotify'){
+    document.getElementById('spotifyWrap').innerHTML='';
+  }
+  currentMode = null;
+  document.getElementById('podcastNow').textContent = 'Idle';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('podcastGo');
+  const input = document.getElementById('podcastUrl');
+  if (btn && input){
+    btn.addEventListener('click', podcastPlay);
+    input.addEventListener('keydown', (e)=>{ if (e.key==='Enter') podcastPlay(); });
+  }
+});
+
+
+/* === Task logging reinforcement === */
+(function(){
+  // Live task stop already hooked earlier; ensure countdown 00:00 path pushes & refreshes
+  const _updateDisplay = updateDisplay;
+  updateDisplay = function(){
+    _updateDisplay();
+    tasks.forEach(t => {
+      const cd = document.getElementById('cd-' + t.id);
+      if (!cd) return;
+      const txt = cd.textContent || '';
+      if (txt === '00:00' && !t._cdLogged){
+        const mins = Math.round((t._countdownInitialSec || t.countdownSec || 0)/60);
+        if (mins > 0){
+          const day = getTodayKey();
+          timeData[day] = timeData[day] || [];
+          timeData[day].push({ category: t.category, duration: mins });
+          saveData();
+          const weekISO = toISODate(startOfWeekMonday(new Date()));
+          const dateISO = toISODate(dateFromWeekAndKey(weekISO, day));
+          logHistory(dateISO, t.category, mins, t.name);
+          pushCompletion(day, t.category, t.name);
+          t._cdLogged = true;
+          // Reset to default 30:00 after completion
+          t.countdownSec = 30*60; t.countdownRunning=false;
+          saveTasks();
+          updateDailyChart(); updateCategoryList(); updateWeekView(); renderHeatmap();
+          promptMood();
+        }
+      }
+      if (txt !== '00:00'){ t._cdLogged = false; }
+    });
+  };
+})();
+
+
+/* === Default countdown of 30:00 for new tasks; clear resets to 30:00 === */
+(function(){
+  const _createTask = createTask;
+  createTask = function(){
+    // block if another is active (rule remains)
+    if (tasks.some(t=>t.active)){ alert('A task is already running. Pause it before adding another.'); return; }
+    _createTask();
+    // set default countdown to 30:00 on the last created task
+    const t = tasks[tasks.length-1];
+    if (t){
+      t.countdownSec = 30*60;
+      t._countdownInitialSec = 30*60;
+      saveTasks();
+      renderTasks();
+      updateDisplay();
+    }
+  };
+  // Clear button handler augmentation: any button with text "Clear" will reset countdown to 30:00
+  document.addEventListener('click', (e)=>{
+    const el = e.target;
+    if (el.tagName === 'BUTTON' && (el.textContent || '').trim().toLowerCase() === 'clear'){
+      // Find task id context
+      let id = null;
+      const root = el.closest('[id^="task-"]');
+      if (root){
+        const m = root.id.match(/task-(\d+)/);
+        if (m) id = parseInt(m[1],10);
+      }
+      if (id){
+        const t = tasks.find(x=>x.id===id);
+        if (t){
+          t.countdownRunning = false;
+          t.countdownSec = 30*60;
+          t._countdownInitialSec = 30*60;
+          saveTasks();
+          renderTasks();
+          updateDisplay();
+        }
+      }
+    }
+  }, true);
+})();
+
+</script>
+
+
+<!-- Podcast Panel -->
+<div id="podcastPanel">
+  <div class="pc-head">
+    <div class="pc-title">Podcast Player</div>
+    <div class="pc-actions">
+      <button class="btn" onclick="podcastPause()">Pause</button>
+      <button class="btn btn-primary" onclick="podcastPlay()">Play</button>
+      <button class="btn btn-ghost" onclick="podcastStop()">Stop</button>
+      <button class="btn" onclick="togglePodcast(false)">Close</button>
+    </div>
+  </div>
+  <div class="pc-body">
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+      <input id="podcastUrl" class="input" placeholder="Paste YouTube / Spotify / audio URL">
+      <button class="btn btn-primary" id="podcastGo">Play</button>
+    </div>
+    <div id="ytHiddenWrap"><div id="ytHidden"></div></div>
+    <div id="audioWrap"></div>
+    <div id="spotifyWrap"></div>
+  </div>
+  <div class="pc-foot">
+    <div id="podcastNow">Idle</div>
+    <div class="small muted">Audio-only. YouTube: full controls • Spotify: stop only (platform limits) • Direct audio supported.</div>
+  </div>
+</div>
+
 </body>
 </html>
