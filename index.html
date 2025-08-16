@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Tracker Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #2a2a2a;
+            color: #ffffff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: #333333;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        /* Daily Distribution Chart */
+        .daily-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 200px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .day-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            margin: 0 8px;
+            position: relative;
+        }
+
+        .bar-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .stacked-bar {
+            width: 40px;
+            display: flex;
+            flex-direction: column;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .stacked-bar:hover {
+            transform: scale(1.05);
+        }
+
+        .bar-segment {
+            width: 100%;
+            transition: opacity 0.3s;
+        }
+
+        .time-label {
+            color: #bbb;
+            font-size: 11px;
+            margin-bottom: 8px;
+            white-space: nowrap;
+        }
+
+        .average-label {
+            color: #666;
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+
+        .day-label {
+            color: #888;
+            font-size: 12px;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        /* Grid lines */
+        .grid-lines {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .grid-line {
+            position: absolute;
+            width: 100%;
+            border-top: 1px dashed #444;
+            left: 0;
+        }
+
+        /* Category Distribution */
+        .category-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #444;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .category-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            margin: 0 -24px;
+            padding: 16px 24px;
+        }
+
+        .category-item:last-child {
+            border-bottom: none;
+        }
+
+        .category-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .category-name {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .category-stats {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .stat-group {
+            text-align: right;
+            min-width: 80px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .ratio-value {
+            color: #888;
+        }
+
+        .change-positive {
+            color: #4ade80;
+        }
+
+        .change-negative {
+            color: #f87171;
+        }
+
+        .change-infinite {
+            color: #4ade80;
+        }
+
+        .time-value {
+            color: #fff;
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 2px;
+            background: currentColor;
+            transition: width 0.3s;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: #4a4a4a;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #5a5a5a;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #333;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 6px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 8px 12px;
+            background: #444;
+            border: 1px solid #555;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #888;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn btn-primary" onclick="openAddTimeModal()">+ Add Time Entry</button>
+            <button class="btn" onclick="resetData()">Reset Week</button>
+            <button class="btn" onclick="generateSampleData()">Load Sample Data</button>
+        </div>
+
+        <!-- Daily Distribution -->
+        <div class="section">
+            <div class="section-title">Daily Distribution</div>
+            <div class="daily-chart" id="dailyChart">
+                <div class="grid-lines">
+                    <div class="grid-line" style="bottom: 25%"></div>
+                    <div class="grid-line" style="bottom: 50%"></div>
+                    <div class="grid-line" style="bottom: 75%"></div>
+                </div>
+            </div>
+            <div class="legend" id="legend"></div>
+        </div>
+
+        <!-- Category Distribution -->
+        <div class="section">
+            <div class="section-title">Category Distribution</div>
+            <div id="categoryList"></div>
+        </div>
+    </div>
+
+    <!-- Add Time Modal -->
+    <div class="modal" id="addTimeModal">
+        <div class="modal-content">
+            <div class="modal-title">Add Time Entry</div>
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="categorySelect">
+                    <option value="DSA">DSA</option>
+                    <option value="Side Project">Side Project</option>
+                    <option value="English">English</option>
+                    <option value="System Design">System Design</option>
+                    <option value="Planning">Planning</option>
+                    <option value="Break">Break</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Day</label>
+                <select class="form-select" id="daySelect">
+                    <option value="MON">Monday</option>
+                    <option value="TUE">Tuesday</option>
+                    <option value="WED">Wednesday</option>
+                    <option value="THU">Thursday</option>
+                    <option value="FRI">Friday</option>
+                    <option value="SAT">Saturday</option>
+                    <option value="SUN">Sunday</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Duration (minutes)</label>
+                <input type="number" class="form-input" id="durationInput" min="1" value="30">
+            </div>
+            <div class="form-actions">
+                <button class="btn" onclick="closeAddTimeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addTimeEntry()">Add Entry</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data structure
+        let timeData = {
+            MON: [],
+            TUE: [],
+            WED: [],
+            THU: [],
+            FRI: [],
+            SAT: [],
+            SUN: []
+        };
+
+        let previousWeekData = {};
+
+        const categories = {
+            'DSA': { color: '#f97316', icon: '⚡' },
+            'Side Project': { color: '#8b5cf6', icon: '🚀' },
+            'English': { color: '#10b981', icon: '📚' },
+            'System Design': { color: '#06b6d4', icon: '🔧' },
+            'Planning': { color: '#ec4899', icon: '📋' },
+            'Break': { color: '#6b7280', icon: '☕' }
+        };
+
+        // Load data from localStorage
+        function loadData() {
+            const saved = localStorage.getItem('timeTrackerData');
+            if (saved) {
+                timeData = JSON.parse(saved);
+            }
+            const savedPrevious = localStorage.getItem('previousWeekData');
+            if (savedPrevious) {
+                previousWeekData = JSON.parse(savedPrevious);
+            }
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('timeTrackerData', JSON.stringify(timeData));
+        }
+
+        // Generate sample data
+        function generateSampleData() {
+            timeData = {
+                MON: [
+                    { category: 'DSA', duration: 180 },
+                    { category: 'Side Project', duration: 120 },
+                    { category: 'English', duration: 30 },
+                    { category: 'Planning', duration: 15 }
+                ],
+                TUE: [
+                    { category: 'DSA', duration: 210 },
+                    { category: 'Side Project', duration: 90 },
+                    { category: 'System Design', duration: 60 },
+                    { category: 'English', duration: 45 }
+                ],
+                WED: [
+                    { category: 'DSA', duration: 240 },
+                    { category: 'Side Project', duration: 150 },
+                    { category: 'Break', duration: 30 }
+                ],
+                THU: [
+                    { category: 'DSA', duration: 195 },
+                    { category: 'Side Project', duration: 135 },
+                    { category: 'System Design', duration: 45 },
+                    { category: 'English', duration: 60 }
+                ],
+                FRI: [
+                    { category: 'DSA', duration: 225 },
+                    { category: 'Side Project', duration: 105 },
+                    { category: 'Planning', duration: 30 },
+                    { category: 'English', duration: 40 }
+                ],
+                SAT: [
+                    { category: 'DSA', duration: 270 },
+                    { category: 'Side Project', duration: 180 },
+                    { category: 'System Design', duration: 30 }
+                ],
+                SUN: [
+                    { category: 'DSA', duration: 150 },
+                    { category: 'Side Project', duration: 90 },
+                    { category: 'English', duration: 60 },
+                    { category: 'Planning', duration: 20 }
+                ]
+            };
+            
+            // Set some previous week data for comparison
+            previousWeekData = {
+                'DSA': 720,
+                'Side Project': 480,
+                'English': 360,
+                'System Design': 30,
+                'Planning': 15,
+                'Break': 60
+            };
+            
+            saveData();
+            localStorage.setItem('previousWeekData', JSON.stringify(previousWeekData));
+            updateDisplay();
+        }
+
+        // Reset data
+        function resetData() {
+            // Move current week to previous week
+            const currentTotals = calculateCategoryTotals();
+            previousWeekData = {};
+            Object.keys(currentTotals).forEach(cat => {
+                previousWeekData[cat] = currentTotals[cat];
+            });
+            localStorage.setItem('previousWeekData', JSON.stringify(previousWeekData));
+            
+            // Clear current week
+            timeData = {
+                MON: [],
+                TUE: [],
+                WED: [],
+                THU: [],
+                FRI: [],
+                SAT: [],
+                SUN: []
+            };
+            saveData();
+            updateDisplay();
+        }
+
+        // Calculate totals
+        function calculateDayTotal(day) {
+            return timeData[day].reduce((sum, entry) => sum + entry.duration, 0);
+        }
+
+        function calculateCategoryTotals() {
+            const totals = {};
+            Object.values(timeData).forEach(dayEntries => {
+                dayEntries.forEach(entry => {
+                    totals[entry.category] = (totals[entry.category] || 0) + entry.duration;
+                });
+            });
+            return totals;
+        }
+
+        function calculateWeekTotal() {
+            let total = 0;
+            Object.values(timeData).forEach(dayEntries => {
+                dayEntries.forEach(entry => {
+                    total += entry.duration;
+                });
+            });
+            return total;
+        }
+
+        // Format time
+        function formatTime(minutes) {
+            if (minutes === 0) return '0min';
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            if (hours === 0) return `${mins}min`;
+            if (mins === 0) return `${hours}h`;
+            return `${hours}h ${mins}min`;
+        }
+
+        // Update daily chart
+        function updateDailyChart() {
+            const chart = document.getElementById('dailyChart');
+            const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+            const dayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+            
+            // Calculate max height for scaling
+            let maxMinutes = 0;
+            days.forEach(day => {
+                const total = calculateDayTotal(day);
+                if (total > maxMinutes) maxMinutes = total;
+            });
+            maxMinutes = Math.max(maxMinutes, 480); // Minimum 8 hours scale
+            
+            // Clear existing bars (keep grid lines)
+            const existingBars = chart.querySelectorAll('.day-column');
+            existingBars.forEach(bar => bar.remove());
+            
+            // Calculate average
+            const weekTotal = calculateWeekTotal();
+            const averageMinutes = weekTotal / 7;
+            
+            // Create bars
+            days.forEach((day, index) => {
+                const dayColumn = document.createElement('div');
+                dayColumn.className = 'day-column';
+                
+                const barContainer = document.createElement('div');
+                barContainer.className = 'bar-container';
+                
+                const dayTotal = calculateDayTotal(day);
+                const heightPercent = (dayTotal / maxMinutes) * 100;
+                
+                // Add average label if close to average
+                if (Math.abs(dayTotal - averageMinutes) < 30 && dayTotal > 0) {
+                    const avgLabel = document.createElement('div');
+                    avgLabel.className = 'average-label';
+                    avgLabel.textContent = `${formatTime(Math.round(averageMinutes))} average`;
+                    barContainer.appendChild(avgLabel);
+                }
+                
+                // Add time label
+                const timeLabel = document.createElement('div');
+                timeLabel.className = 'time-label';
+                timeLabel.textContent = formatTime(dayTotal);
+                barContainer.appendChild(timeLabel);
+                
+                // Create stacked bar
+                const stackedBar = document.createElement('div');
+                stackedBar.className = 'stacked-bar';
+                stackedBar.style.height = `${heightPercent}%`;
+                
+                // Add segments
+                timeData[day].forEach(entry => {
+                    const segment = document.createElement('div');
+                    segment.className = 'bar-segment';
+                    const segmentHeight = (entry.duration / dayTotal) * 100;
+                    segment.style.height = `${segmentHeight}%`;
+                    segment.style.backgroundColor = categories[entry.category].color;
+                    segment.title = `${entry.category}: ${formatTime(entry.duration)}`;
+                    stackedBar.appendChild(segment);
+                });
+                
+                if (dayTotal > 0) {
+                    barContainer.appendChild(stackedBar);
+                }
+                
+                dayColumn.appendChild(barContainer);
+                
+                // Add day label
+                const dayLabel = document.createElement('div');
+                dayLabel.className = 'day-label';
+                dayLabel.textContent = dayLabels[index];
+                dayColumn.appendChild(dayLabel);
+                
+                chart.appendChild(dayColumn);
+            });
+        }
+
+        // Update category list
+        function updateCategoryList() {
+            const list = document.getElementById('categoryList');
+            list.innerHTML = '';
+            
+            const totals = calculateCategoryTotals();
+            const weekTotal = calculateWeekTotal();
+            
+            // Sort by time spent
+            const sortedCategories = Object.keys(categories).sort((a, b) => {
+                return (totals[b] || 0) - (totals[a] || 0);
+            });
+            
+            sortedCategories.forEach(category => {
+                const minutes = totals[category] || 0;
+                const ratio = weekTotal > 0 ? (minutes / weekTotal) * 100 : 0;
+                
+                // Calculate change
+                const previousMinutes = previousWeekData[category] || 0;
+                let change = '-';
+                let changeClass = '';
+                if (previousMinutes === 0 && minutes > 0) {
+                    change = '∞';
+                    changeClass = 'change-infinite';
+                } else if (previousMinutes > 0) {
+                    const changePercent = ((minutes - previousMinutes) / previousMinutes) * 100;
+                    change = `${changePercent > 0 ? '+' : ''}${changePercent.toFixed(0)}%`;
+                    changeClass = changePercent > 0 ? 'change-positive' : 'change-negative';
+                }
+                
+                const item = document.createElement('div');
+                item.className = 'category-item';
+                item.innerHTML = `
+                    <div class="category-icon" style="background: ${categories[category].color}20; color: ${categories[category].color}">
+                        ${categories[category].icon}
+                    </div>
+                    <div class="category-name">${category}</div>
+                    <div class="category-stats">
+                        <div class="stat-group">
+                            <div class="stat-label">RATIO</div>
+                            <div class="stat-value ratio-value">${ratio.toFixed(0)}%</div>
+                        </div>
+                        <div class="stat-group">
+                            <div class="stat-label">CHANGE</div>
+                            <div class="stat-value ${changeClass}">${change}</div>
+                        </div>
+                        <div class="stat-group">
+                            <div class="stat-label">TIME SPENT</div>
+                            <div class="stat-value time-value">${formatTime(minutes)}</div>
+                        </div>
+                    </div>
+                `;
+                
+                list.appendChild(item);
+            });
+        }
+
+        // Update legend
+        function updateLegend() {
+            const legend = document.getElementById('legend');
+            legend.innerHTML = '';
+            
+            Object.entries(categories).forEach(([name, config]) => {
+                const item = document.createElement('div');
+                item.className = 'legend-item';
+                item.innerHTML = `
+                    <div class="legend-color" style="background: ${config.color}"></div>
+                    <span>${name}</span>
+                `;
+                legend.appendChild(item);
+            });
+        }
+
+        // Modal functions
+        function openAddTimeModal() {
+            document.getElementById('addTimeModal').classList.add('active');
+        }
+
+        function closeAddTimeModal() {
+            document.getElementById('addTimeModal').classList.remove('active');
+        }
+
+        function addTimeEntry() {
+            const category = document.getElementById('categorySelect').value;
+            const day = document.getElementById('daySelect').value;
+            const duration = parseInt(document.getElementById('durationInput').value);
+            
+            if (duration > 0) {
+                timeData[day].push({ category, duration });
+                saveData();
+                updateDisplay();
+                closeAddTimeModal();
+            }
+        }
+
+        // Update display
+        function updateDisplay() {
+            updateDailyChart();
+            updateCategoryList();
+            updateLegend();
+        }
+
+        // Initialize
+        loadData();
+        updateDisplay();
+
+        // Close modal on outside click
+        document.getElementById('addTimeModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddTimeModal();
+            }
+        });
+    </script>
+</body>
+</html>
