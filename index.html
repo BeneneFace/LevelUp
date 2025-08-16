@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: #2a2a2a;
+            background: #1a1a1a;
             color: #ffffff;
             padding: 20px;
             min-height: 100vh;
@@ -25,7 +25,7 @@
         }
 
         .section {
-            background: #333333;
+            background: #2a2a2a;
             border-radius: 12px;
             padding: 24px;
             margin-bottom: 24px;
@@ -43,19 +43,15 @@
             display: flex;
             align-items: flex-end;
             justify-content: space-between;
-            height: 200px;
+            height: 250px;
             margin-bottom: 10px;
             position: relative;
-        }
-
-        .day-column {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-end;
-            margin: 0 8px;
-            position: relative;
+            padding-left: 50px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding-right: 20px;
+            padding-bottom: 35px;
+            padding-top: 20px;
         }
 
         .bar-container {
@@ -66,19 +62,8 @@
             position: relative;
         }
 
-        .stacked-bar {
-            width: 40px;
-            display: flex;
-            flex-direction: column;
-            border-radius: 4px;
-            overflow: hidden;
+        .day-column {
             position: relative;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .stacked-bar:hover {
-            transform: scale(1.05);
         }
 
         .bar-segment {
@@ -89,36 +74,50 @@
         .time-label {
             color: #bbb;
             font-size: 11px;
-            margin-bottom: 8px;
             white-space: nowrap;
+            z-index: 10;
         }
 
         .average-label {
             color: #666;
             font-size: 10px;
-            margin-bottom: 4px;
+            white-space: nowrap;
         }
 
         .day-label {
             color: #888;
             font-size: 12px;
-            margin-top: 8px;
             font-weight: 500;
+            position: absolute;
+            bottom: -28px;
+            white-space: nowrap;
         }
 
         /* Grid lines */
         .grid-lines {
             position: absolute;
-            width: 100%;
-            height: 100%;
+            width: calc(100% - 70px);
+            height: calc(100% - 55px);
             pointer-events: none;
+            left: 50px;
+            bottom: 35px;
         }
 
         .grid-line {
             position: absolute;
             width: 100%;
-            border-top: 1px dashed #444;
+            border-top: 1px solid #3f3f3f;
             left: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .grid-label {
+            position: absolute;
+            left: -45px;
+            font-size: 10px;
+            color: #666;
+            white-space: nowrap;
         }
 
         /* Category Distribution */
@@ -126,7 +125,7 @@
             display: flex;
             align-items: center;
             padding: 16px 0;
-            border-bottom: 1px solid #444;
+            border-bottom: 1px solid #3a3a3a;
             cursor: pointer;
             transition: background 0.2s;
         }
@@ -219,7 +218,7 @@
         }
 
         .btn {
-            background: #4a4a4a;
+            background: #3a3a3a;
             color: #fff;
             border: none;
             padding: 8px 16px;
@@ -230,7 +229,7 @@
         }
 
         .btn:hover {
-            background: #5a5a5a;
+            background: #4a4a4a;
         }
 
         .btn-primary {
@@ -260,7 +259,7 @@
         }
 
         .modal-content {
-            background: #333;
+            background: #2a2a2a;
             padding: 24px;
             border-radius: 12px;
             width: 90%;
@@ -286,8 +285,8 @@
         .form-input, .form-select {
             width: 100%;
             padding: 8px 12px;
-            background: #444;
-            border: 1px solid #555;
+            background: #3a3a3a;
+            border: 1px solid #4a4a4a;
             border-radius: 6px;
             color: #fff;
             font-size: 14px;
@@ -336,11 +335,6 @@
         <div class="section">
             <div class="section-title">Daily Distribution</div>
             <div class="daily-chart" id="dailyChart">
-                <div class="grid-lines">
-                    <div class="grid-line" style="bottom: 25%"></div>
-                    <div class="grid-line" style="bottom: 50%"></div>
-                    <div class="grid-line" style="bottom: 75%"></div>
-                </div>
             </div>
             <div class="legend" id="legend"></div>
         </div>
@@ -563,9 +557,54 @@
             });
             maxMinutes = Math.max(maxMinutes, 480); // Minimum 8 hours scale
             
-            // Clear existing bars (keep grid lines)
-            const existingBars = chart.querySelectorAll('.day-column');
-            existingBars.forEach(bar => bar.remove());
+            // Round up to nearest hour for cleaner scale
+            maxMinutes = Math.ceil(maxMinutes / 60) * 60;
+            
+            // Clear existing content
+            chart.innerHTML = '';
+            
+            // Create grid lines with labels
+            const gridLines = document.createElement('div');
+            gridLines.className = 'grid-lines';
+            
+            // Add horizontal grid lines at regular intervals
+            const gridIntervals = [0, 0.25, 0.5, 0.75, 1];
+            gridIntervals.forEach(interval => {
+                const gridLine = document.createElement('div');
+                gridLine.className = 'grid-line';
+                gridLine.style.bottom = `${interval * 100}%`;
+                
+                if (interval > 0) {  // Only add labels for non-zero lines
+                    const label = document.createElement('div');
+                    label.className = 'grid-label';
+                    label.textContent = formatTime(Math.round(maxMinutes * interval));
+                    gridLine.appendChild(label);
+                }
+                
+                gridLines.appendChild(gridLine);
+            });
+            
+            // Add 0min label at bottom
+            const zeroLabel = document.createElement('div');
+            zeroLabel.className = 'grid-label';
+            zeroLabel.style.position = 'absolute';
+            zeroLabel.style.bottom = '0px';
+            zeroLabel.style.left = '-45px';
+            zeroLabel.textContent = '0min';
+            gridLines.appendChild(zeroLabel);
+            
+            chart.appendChild(gridLines);
+            
+            // Create bars container
+            const barsContainer = document.createElement('div');
+            barsContainer.style.position = 'absolute';
+            barsContainer.style.bottom = '35px';
+            barsContainer.style.left = '50px';
+            barsContainer.style.right = '20px';
+            barsContainer.style.height = 'calc(100% - 55px)';
+            barsContainer.style.display = 'flex';
+            barsContainer.style.alignItems = 'flex-end';
+            barsContainer.style.justifyContent = 'space-between';
             
             // Calculate average
             const weekTotal = calculateWeekTotal();
@@ -575,45 +614,84 @@
             days.forEach((day, index) => {
                 const dayColumn = document.createElement('div');
                 dayColumn.className = 'day-column';
+                dayColumn.style.position = 'relative';
+                dayColumn.style.flex = '1';
+                dayColumn.style.display = 'flex';
+                dayColumn.style.flexDirection = 'column';
+                dayColumn.style.alignItems = 'center';
+                dayColumn.style.justifyContent = 'flex-end';
+                dayColumn.style.margin = '0 8px';
+                dayColumn.style.height = '100%';
                 
                 const barContainer = document.createElement('div');
                 barContainer.className = 'bar-container';
+                barContainer.style.width = '100%';
+                barContainer.style.display = 'flex';
+                barContainer.style.flexDirection = 'column';
+                barContainer.style.alignItems = 'center';
+                barContainer.style.position = 'relative';
+                barContainer.style.height = '100%';
+                barContainer.style.justifyContent = 'flex-end';
                 
                 const dayTotal = calculateDayTotal(day);
                 const heightPercent = (dayTotal / maxMinutes) * 100;
                 
-                // Add average label if close to average
-                if (Math.abs(dayTotal - averageMinutes) < 30 && dayTotal > 0) {
-                    const avgLabel = document.createElement('div');
-                    avgLabel.className = 'average-label';
-                    avgLabel.textContent = `${formatTime(Math.round(averageMinutes))} average`;
-                    barContainer.appendChild(avgLabel);
-                }
-                
-                // Add time label
+                // Add time label above bar
                 const timeLabel = document.createElement('div');
                 timeLabel.className = 'time-label';
                 timeLabel.textContent = formatTime(dayTotal);
+                timeLabel.style.position = 'absolute';
+                timeLabel.style.bottom = `calc(${heightPercent}% + 5px)`;
+                timeLabel.style.whiteSpace = 'nowrap';
                 barContainer.appendChild(timeLabel);
                 
                 // Create stacked bar
-                const stackedBar = document.createElement('div');
-                stackedBar.className = 'stacked-bar';
-                stackedBar.style.height = `${heightPercent}%`;
-                
-                // Add segments
-                timeData[day].forEach(entry => {
-                    const segment = document.createElement('div');
-                    segment.className = 'bar-segment';
-                    const segmentHeight = (entry.duration / dayTotal) * 100;
-                    segment.style.height = `${segmentHeight}%`;
-                    segment.style.backgroundColor = categories[entry.category].color;
-                    segment.title = `${entry.category}: ${formatTime(entry.duration)}`;
-                    stackedBar.appendChild(segment);
-                });
-                
                 if (dayTotal > 0) {
+                    const stackedBar = document.createElement('div');
+                    stackedBar.className = 'stacked-bar';
+                    stackedBar.style.height = `${heightPercent}%`;
+                    stackedBar.style.position = 'absolute';
+                    stackedBar.style.bottom = '0';
+                    stackedBar.style.width = '40px';
+                    stackedBar.style.display = 'flex';
+                    stackedBar.style.flexDirection = 'column';
+                    stackedBar.style.borderRadius = '4px';
+                    stackedBar.style.overflow = 'hidden';
+                    stackedBar.style.cursor = 'pointer';
+                    stackedBar.style.transition = 'transform 0.2s';
+                    
+                    stackedBar.onmouseover = function() {
+                        this.style.transform = 'scale(1.05)';
+                    };
+                    stackedBar.onmouseout = function() {
+                        this.style.transform = 'scale(1)';
+                    };
+                    
+                    // Add segments from bottom to top
+                    timeData[day].forEach(entry => {
+                        const segment = document.createElement('div');
+                        segment.className = 'bar-segment';
+                        const segmentHeight = (entry.duration / dayTotal) * 100;
+                        segment.style.height = `${segmentHeight}%`;
+                        segment.style.backgroundColor = categories[entry.category].color;
+                        segment.title = `${entry.category}: ${formatTime(entry.duration)}`;
+                        stackedBar.appendChild(segment);
+                    });
+                    
                     barContainer.appendChild(stackedBar);
+                }
+                
+                // Add average label if this day is close to average
+                if (Math.abs(dayTotal - averageMinutes) < 15 && dayTotal > 0 && averageMinutes > 60) {
+                    const avgLabel = document.createElement('div');
+                    avgLabel.className = 'average-label';
+                    avgLabel.textContent = `${formatTime(Math.round(averageMinutes))} average`;
+                    avgLabel.style.position = 'absolute';
+                    avgLabel.style.bottom = `calc(${heightPercent}% + 25px)`;
+                    avgLabel.style.fontSize = '10px';
+                    avgLabel.style.color = '#666';
+                    avgLabel.style.whiteSpace = 'nowrap';
+                    barContainer.appendChild(avgLabel);
                 }
                 
                 dayColumn.appendChild(barContainer);
@@ -624,8 +702,10 @@
                 dayLabel.textContent = dayLabels[index];
                 dayColumn.appendChild(dayLabel);
                 
-                chart.appendChild(dayColumn);
+                barsContainer.appendChild(dayColumn);
             });
+            
+            chart.appendChild(barsContainer);
         }
 
         // Update category list
@@ -732,7 +812,12 @@
 
         // Initialize
         loadData();
-        updateDisplay();
+        // If no data exists, load sample data automatically
+        if (Object.values(timeData).every(day => day.length === 0)) {
+            generateSampleData();
+        } else {
+            updateDisplay();
+        }
 
         // Close modal on outside click
         document.getElementById('addTimeModal').addEventListener('click', function(e) {
