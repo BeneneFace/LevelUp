@@ -1,2 +1,2 @@
 Daily tracker for study
-https://beneneface.github.io/LevelUp/
+link - https://beneneface.github.io/LevelUp/
