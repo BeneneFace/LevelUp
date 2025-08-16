@@ -441,7 +441,7 @@
       </div>
     </div>
 <!-- Music FAB -->
-  <div class="music-fab" id="musicFab">
+<!--   <div class="music-fab" id="musicFab">
     <div class="music-icon">🎵</div>
     <div class="music-details">
       <div class="noise-buttons">
@@ -453,7 +453,7 @@
       <button class="btn small" onclick="loadExternalMusic()">Play</button>
       <span id="nowPlaying" class="muted small"></span>
     </div>
-  </div>
+  </div> -->
 
   <script>
     /* =====================
@@ -1020,110 +1020,110 @@
     /* =====================
        Music / Noise
     ======================*/
-    let audioCtx = null, whiteNoiseNode = null, pinkNoiseNode=null, brownNoiseNode=null, gainNode=null;
-    function ensureAudio(){
-      if (!audioCtx){
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        gainNode = audioCtx.createGain(); gainNode.gain.value = 0.04; gainNode.connect(audioCtx.destination);
-      }
-    }
-    function toggleNoise(type){
-      ensureAudio();
-      stopAllNoise();
-      if (type==='white'){ whiteNoiseNode = createWhiteNoise(); whiteNoiseNode.connect(gainNode); }
-      if (type==='pink'){ pinkNoiseNode = createPinkNoise(); pinkNoiseNode.connect(gainNode); }
-      if (type==='brown'){ brownNoiseNode = createBrownNoise(); brownNoiseNode.connect(gainNode); }
-      document.getElementById('nowPlaying').textContent = type ? (type.charAt(0).toUpperCase()+type.slice(1))+' noise' : '';
-    }
-    function stopAllNoise(){ [whiteNoiseNode,pinkNoiseNode,brownNoiseNode].forEach(n=>{ if (n){ try{ n.disconnect(); }catch(e){} } }); whiteNoiseNode=pinkNoiseNode=brownNoiseNode=null; }
-    function createWhiteNoise(){
-      const bufferSize = 2 * (audioCtx.sampleRate || 44100);
-      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
-      const whiteNoise = audioCtx.createBufferSource();
-      whiteNoise.buffer = noiseBuffer; whiteNoise.loop = true; whiteNoise.start(0);
-      return whiteNoise;
-    }
-    function createPinkNoise(){
-      const bufferSize = 16384;
-      const node = audioCtx.createScriptProcessor(bufferSize, 1, 1);
-      let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
-      node.onaudioprocess = function(e){
-        const output = e.outputBuffer.getChannelData(0);
-        for (let i=0;i<bufferSize;i++){
-          const white = Math.random() * 2 - 1;
-          b0 = 0.99886 * b0 + white * 0.0555179;
-          b1 = 0.99332 * b1 + white * 0.0750759;
-          b2 = 0.96900 * b2 + white * 0.1538520;
-          b3 = 0.86650 * b3 + white * 0.3104856;
-          b4 = 0.55000 * b4 + white * 0.5329522;
-          b5 = -0.7616 * b5 - white * 0.0168980;
-          output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-          output[i] *= 0.12;
-          b6 = white * 0.115926;
-        }
-      };
-      node.connect(gainNode);
-      return node;
-    }
-    function createBrownNoise(){
-      const bufferSize = 16384;
-      const node = audioCtx.createScriptProcessor(bufferSize, 1, 1);
-      let lastOut = 0.0;
-      node.onaudioprocess = function(e){
-        const output = e.outputBuffer.getChannelData(0);
-        for (let i=0;i<bufferSize;i++){
-          const white = Math.random() * 2 - 1;
-          output[i] = (lastOut + (0.02 * white)) / 1.02;
-          lastOut = output[i];
-          output[i] *= 3.5;
-        }
-      };
-      node.connect(gainNode);
-      return node;
-    }
-    function loadExternalMusic(){
-      const url = document.getElementById('musicUrl').value.trim();
-      if (!url) return;
-      stopAllNoise();
-      localStorage.setItem('timeTrackerMusicUrl', url);
-      embedExternal(url);
-    }
-    function embedExternal(url){
-      const fab = document.getElementById('musicFab');
-      const old = document.getElementById('musicEmbed'); if (old) old.remove();
-      const frame = document.createElement('iframe');
-      frame.id = 'musicEmbed';
-      frame.style.border='0'; frame.style.width='1px'; frame.style.height='1px'; frame.style.position='absolute'; frame.style.right='70px'; frame.style.bottom='70px';
-      if (url.includes('spotify.com')){
-        let embed = url;
-        if (!url.includes('/embed/')){
-          embed = url.replace('open.spotify.com/', 'open.spotify.com/embed/');
-        }
-        frame.src = embed;
-        frame.style.width='380px'; frame.style.height='152px';
-        document.getElementById('nowPlaying').textContent='Spotify';
-      } else if (url.includes('youtube.com') || url.includes('youtu.be')){
-        let vid='';
-        if (url.includes('youtu.be/')) vid = url.split('youtu.be/')[1].split(/[?&]/)[0];
-        else {
-          const params = new URLSearchParams(url.split('?')[1]||'');
-          vid = params.get('v') || '';
-        }
-        frame.src = 'https://www.youtube.com/embed/'+vid+'?autoplay=1&loop=1';
-        frame.style.width='380px'; frame.style.height='214px';
-        document.getElementById('nowPlaying').textContent='YouTube';
-      } else {
-        document.getElementById('nowPlaying').textContent='Custom audio';
-        const audio = new Audio(url); audio.loop = true; audio.autoplay = true; audio.controls = true;
-        audio.style.position='absolute'; audio.style.right='70px'; audio.style.bottom='70px'; audio.style.width='320px';
-        audio.id='musicEmbed';
-        fab.appendChild(audio);
-        return;
-      }
-      fab.appendChild(frame);
-    }
+    // let audioCtx = null, whiteNoiseNode = null, pinkNoiseNode=null, brownNoiseNode=null, gainNode=null;
+    // function ensureAudio(){
+    //   if (!audioCtx){
+    //     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    //     gainNode = audioCtx.createGain(); gainNode.gain.value = 0.04; gainNode.connect(audioCtx.destination);
+    //   }
+    // }
+    // function toggleNoise(type){
+    //   ensureAudio();
+    //   stopAllNoise();
+    //   if (type==='white'){ whiteNoiseNode = createWhiteNoise(); whiteNoiseNode.connect(gainNode); }
+    //   if (type==='pink'){ pinkNoiseNode = createPinkNoise(); pinkNoiseNode.connect(gainNode); }
+    //   if (type==='brown'){ brownNoiseNode = createBrownNoise(); brownNoiseNode.connect(gainNode); }
+    //   document.getElementById('nowPlaying').textContent = type ? (type.charAt(0).toUpperCase()+type.slice(1))+' noise' : '';
+    // }
+    // function stopAllNoise(){ [whiteNoiseNode,pinkNoiseNode,brownNoiseNode].forEach(n=>{ if (n){ try{ n.disconnect(); }catch(e){} } }); whiteNoiseNode=pinkNoiseNode=brownNoiseNode=null; }
+    // function createWhiteNoise(){
+    //   const bufferSize = 2 * (audioCtx.sampleRate || 44100);
+    //   const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    //   const output = noiseBuffer.getChannelData(0);
+    //   for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
+    //   const whiteNoise = audioCtx.createBufferSource();
+    //   whiteNoise.buffer = noiseBuffer; whiteNoise.loop = true; whiteNoise.start(0);
+    //   return whiteNoise;
+    // }
+    // function createPinkNoise(){
+    //   const bufferSize = 16384;
+    //   const node = audioCtx.createScriptProcessor(bufferSize, 1, 1);
+    //   let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+    //   node.onaudioprocess = function(e){
+    //     const output = e.outputBuffer.getChannelData(0);
+    //     for (let i=0;i<bufferSize;i++){
+    //       const white = Math.random() * 2 - 1;
+    //       b0 = 0.99886 * b0 + white * 0.0555179;
+    //       b1 = 0.99332 * b1 + white * 0.0750759;
+    //       b2 = 0.96900 * b2 + white * 0.1538520;
+    //       b3 = 0.86650 * b3 + white * 0.3104856;
+    //       b4 = 0.55000 * b4 + white * 0.5329522;
+    //       b5 = -0.7616 * b5 - white * 0.0168980;
+    //       output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+    //       output[i] *= 0.12;
+    //       b6 = white * 0.115926;
+    //     }
+    //   };
+    //   node.connect(gainNode);
+    //   return node;
+    // }
+    // function createBrownNoise(){
+    //   const bufferSize = 16384;
+    //   const node = audioCtx.createScriptProcessor(bufferSize, 1, 1);
+    //   let lastOut = 0.0;
+    //   node.onaudioprocess = function(e){
+    //     const output = e.outputBuffer.getChannelData(0);
+    //     for (let i=0;i<bufferSize;i++){
+    //       const white = Math.random() * 2 - 1;
+    //       output[i] = (lastOut + (0.02 * white)) / 1.02;
+    //       lastOut = output[i];
+    //       output[i] *= 3.5;
+    //     }
+    //   };
+    //   node.connect(gainNode);
+    //   return node;
+    // }
+    // function loadExternalMusic(){
+    //   const url = document.getElementById('musicUrl').value.trim();
+    //   if (!url) return;
+    //   stopAllNoise();
+    //   localStorage.setItem('timeTrackerMusicUrl', url);
+    //   embedExternal(url);
+    // }
+    // function embedExternal(url){
+    //   const fab = document.getElementById('musicFab');
+    //   const old = document.getElementById('musicEmbed'); if (old) old.remove();
+    //   const frame = document.createElement('iframe');
+    //   frame.id = 'musicEmbed';
+    //   frame.style.border='0'; frame.style.width='1px'; frame.style.height='1px'; frame.style.position='absolute'; frame.style.right='70px'; frame.style.bottom='70px';
+    //   if (url.includes('spotify.com')){
+    //     let embed = url;
+    //     if (!url.includes('/embed/')){
+    //       embed = url.replace('open.spotify.com/', 'open.spotify.com/embed/');
+    //     }
+    //     frame.src = embed;
+    //     frame.style.width='380px'; frame.style.height='152px';
+    //     document.getElementById('nowPlaying').textContent='Spotify';
+    //   } else if (url.includes('youtube.com') || url.includes('youtu.be')){
+    //     let vid='';
+    //     if (url.includes('youtu.be/')) vid = url.split('youtu.be/')[1].split(/[?&]/)[0];
+    //     else {
+    //       const params = new URLSearchParams(url.split('?')[1]||'');
+    //       vid = params.get('v') || '';
+    //     }
+    //     frame.src = 'https://www.youtube.com/embed/'+vid+'?autoplay=1&loop=1';
+    //     frame.style.width='380px'; frame.style.height='214px';
+    //     document.getElementById('nowPlaying').textContent='YouTube';
+    //   } else {
+    //     document.getElementById('nowPlaying').textContent='Custom audio';
+    //     const audio = new Audio(url); audio.loop = true; audio.autoplay = true; audio.controls = true;
+    //     audio.style.position='absolute'; audio.style.right='70px'; audio.style.bottom='70px'; audio.style.width='320px';
+    //     audio.id='musicEmbed';
+    //     fab.appendChild(audio);
+    //     return;
+    //   }
+    //   fab.appendChild(frame);
+    // }
 
     /* =====================
        Beep for countdown (non-copyright)
@@ -1972,14 +1972,14 @@ function resumeMusic(){
     playBtn.onclick = ()=> playMusicFromUrl(input.value);
   }
   // Add a launcher button in top controls if not present
-  const controls = document.querySelector('.controls');
-  if (controls && !document.getElementById('musicLauncher')){
-    const b = document.createElement('button');
-    b.className = 'btn'; b.id='musicLauncher';
-    b.textContent = '🎵 Music';
-    b.onclick = ()=> toggleMusicPanel();
-    controls.appendChild(b);
-  }
+  // const controls = document.querySelector('.controls');
+  // if (controls && !document.getElementById('musicLauncher')){
+  //   const b = document.createElement('button');
+  //   b.className = 'btn'; b.id='musicLauncher';
+  //   b.textContent = '🎵 Music';
+  //   b.onclick = ()=> toggleMusicPanel();
+  //   controls.appendChild(b);
+  // }
 })();
 
 // Extend playMusicFromUrl for SoundCloud and remember last URL
